@@ -52,6 +52,42 @@
 .ac-fail::before{content:"";width:.375rem;height:.375rem;border-radius:50%;background:var(--color-bad)}
 [data-dash-source-state=empty]{color:transparent}
 [data-dash-source-state=refreshing]{opacity:.5;transition:opacity var(--cds-dur-slow)}
+.ac-mx td{vertical-align:top}
+.ac-mx td .v{display:block;font-size:var(--cds-font-size-body)}
+.ac-mx td .s{display:block;color:var(--color-fg-muted)}
+.ac-mx td .s.ac-neg{color:var(--color-bad)}
+.ac-mx td.worst{background:color-mix(in srgb, var(--color-bad) 12%, transparent)}
+.ac-mx td.best{background:color-mix(in srgb, var(--color-ok) 12%, transparent)}
+.ac-mx tfoot td{font-weight:600;border-top:1px solid var(--color-fg-muted)}
+.ac-cmp-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--cds-gap-sm)}
+.ac-legend{display:flex;flex-wrap:wrap;gap:var(--cds-gap-md);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ac-sw{display:inline-block;width:.8rem;height:.8rem;border-radius:3px;margin-right:.3rem;vertical-align:-1px}
+.ac-sim{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:var(--cds-gap-lg);align-items:start}
+.ac-sim-ctl{display:flex;flex-direction:column;gap:var(--cds-gap-md);min-width:0}
+.ac-range{display:flex;flex-direction:column;gap:var(--cds-gap-xs);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ac-range-row{display:flex;align-items:center;gap:var(--cds-gap-sm)}
+.ac-range input{flex:1;min-width:0;accent-color:var(--color-fg)}
+.ac-range output{min-width:4.5rem;text-align:right;color:var(--color-fg);font-size:var(--cds-font-size-body)}
+.ac-sim-out{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));gap:var(--cds-gap-sm)}
+.ac-sim-out .ac-kpi{padding:var(--cds-pad-md)}
+.ac-btn{font:inherit;font-size:var(--cds-font-size-caption);border:1px solid var(--color-border-line);background:var(--color-bg);color:var(--color-fg);border-radius:var(--cds-radius);padding:var(--cds-pad-xs) var(--cds-pad-md);cursor:pointer;align-self:flex-start}
+.ac-btn:focus-visible{outline:2px solid var(--color-fg);outline-offset:2px}
+.ac-big{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);line-height:1.3;margin:0;text-wrap:balance}
+.ac-hero{background:var(--color-panel)}
+.ac-hero .ac-big b{font-weight:600}
+.ac-sim-table td{font-size:var(--cds-font-size-body)}
+.ac-sim-table td.gain{font-weight:600;color:var(--color-ok)}
+.ac-bar{height:.7rem;border-radius:4px;background:var(--color-ok);opacity:.55;min-width:2px}
+.ac-barcell{width:28%;min-width:6rem}
+.ac-store-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,15rem),1fr));gap:var(--cds-gap-md)}
+.ac-store{border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-md);display:flex;flex-direction:column;gap:var(--cds-gap-xs);min-width:0}
+.ac-store h3{margin:0;font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium)}
+.ac-store .meta{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ac-store ol{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:var(--cds-gap-xs);font-size:var(--cds-font-size-body)}
+.ac-store li span{color:var(--color-fg-muted);font-size:var(--cds-font-size-caption)}
+.ac-store li b{color:var(--color-ok);font-weight:600}
+.ac-details summary{cursor:pointer;list-style:revert}
+.ac-details summary h2{display:inline}
 @media (max-width:640px){.ac-hide-sm{display:none}}
 </style>
 
@@ -69,6 +105,8 @@
 
   <div class="ac-tabs" role="tablist" aria-label="ページ">
     <button class="ac-tab" role="tab" id="tab-overview" data-page="overview" aria-selected="true">5店舗サマリー</button>
+    <button class="ac-tab" role="tab" id="tab-compare" data-page="compare" aria-selected="false">週別の比較</button>
+    <button class="ac-tab" role="tab" id="tab-sim" data-page="sim" aria-selected="false">改善シミュレーション</button>
     <button class="ac-tab" role="tab" id="tab-store" data-page="store" aria-selected="false">店舗別</button>
     <button class="ac-tab" role="tab" id="tab-month" data-page="month" aria-selected="false">月次</button>
     <button class="ac-tab" role="tab" id="tab-notes" data-page="notes" aria-selected="false">見方と所見</button>
@@ -80,7 +118,7 @@
       <div class="ac-kpi" id="kpi-sales"><span class="ac-kpi-l">5店合計 販売高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="sales">—</span><span class="ac-kpi-s">前週比 <span data-source="week_sum" data-field="sales_wow">—</span></span></div>
       <div class="ac-kpi" id="kpi-gp"><span class="ac-kpi-l">5店合計 荒利益高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="gross_profit">—</span><span class="ac-kpi-s">前週比 <span data-source="week_sum" data-field="gp_wow">—</span></span></div>
       <div class="ac-kpi" id="kpi-gprate"><span class="ac-kpi-l">5店合計 荒利率（荒利益高÷販売高）</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="gp_rate">—</span><span class="ac-kpi-s">前週差 <span data-source="week_sum" data-field="gp_rate_diff">—</span></span></div>
-      <div class="ac-kpi" id="kpi-loss"><span class="ac-kpi-l">5店合計 ロス率（値引＋廃棄）÷販売高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="loss_rate">—</span><span class="ac-kpi-s">前週差 <span data-source="week_sum" data-field="loss_rate_diff">—</span></span></div>
+      <div class="ac-kpi" id="kpi-loss"><span class="ac-kpi-l">5店合計 ロス額（値引＋廃棄）</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="loss">—</span><span class="ac-kpi-s">ロス率 <span class="lr" data-source="week_sum" data-field="loss_rate">—</span>（前週差 <span class="lrd" data-source="week_sum" data-field="loss_rate_diff">—</span>）</span></div>
     </div>
 
     <div class="ac-card" id="scorecard">
@@ -95,11 +133,12 @@
             <th data-field="discount">値引高</th>
             <th data-source="store_week" data-field="discount_rate">値引率</th>
             <th data-field="waste">廃棄高</th>
-            <th data-source="store_week" data-field="loss_rate">ロス率</th>
+            <th data-source="store_week" data-field="loss">ロス額<br>（値引＋廃棄）</th>
+            <th data-source="store_week" data-field="loss_rate">ロス率<br>（÷販売高）</th>
+            <th data-source="store_week" data-field="sell_rate">販売率</th>
             <th data-field="gross_profit">荒利益高</th>
             <th data-field="gp_yoy">荒利前年比</th>
             <th data-source="store_week" data-field="gp_rate">荒利率</th>
-            <th data-field="opp_loss" class="ac-hide-sm">機会ロス高</th>
             <th data-field="discount_sku_match" class="ac-hide-sm">値引SKU一致</th>
           </tr></thead>
           <tbody></tbody>
@@ -121,6 +160,81 @@
     </div>
   </section>
 
+  <!-- 週別の比較 -->
+  <section class="ac-page" id="compare" hidden>
+    <p class="ac-note">値引・廃棄・荒利益高を、5店舗×週で別々に並べています。表の上段が金額、下段が販売高に対する率です。各週で最も悪い店を赤、最も良い店を緑の背景にしています。</p>
+    <div class="ac-legend" aria-label="凡例"><span><span class="ac-sw" style="background:color-mix(in srgb, var(--color-bad) 12%, transparent)"></span>その週で最も悪い店</span><span><span class="ac-sw" style="background:color-mix(in srgb, var(--color-ok) 12%, transparent)"></span>その週で最も良い店</span></div>
+    <div class="ac-card" id="cmp-discount">
+      <div class="ac-cmp-head"><h2>値引の状況</h2><div class="ac-chips" role="group" aria-label="グラフの指標"></div></div>
+      <p class="ac-note">値引率 ＝ 値引高 ÷ 販売高。低いほど、値引に頼らず売れています。</p>
+      <div class="ac-chart" data-source="weekly_total store_week"></div>
+      <div class="ac-scroll"><table class="ac-table ac-mx"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+    </div>
+    <div class="ac-card" id="cmp-waste">
+      <div class="ac-cmp-head"><h2>廃棄の状況</h2><div class="ac-chips" role="group" aria-label="グラフの指標"></div></div>
+      <p class="ac-note">廃棄率 ＝ 廃棄高 ÷ 販売高。下段の右は廃棄前年比で、少ないほど良い数字です。</p>
+      <div class="ac-chart" data-source="weekly_total store_week"></div>
+      <div class="ac-scroll"><table class="ac-table ac-mx"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+    </div>
+    <div class="ac-card" id="cmp-gp">
+      <div class="ac-cmp-head"><h2>荒利益高の状況</h2><div class="ac-chips" role="group" aria-label="グラフの指標"></div></div>
+      <p class="ac-note">荒利率 ＝ 荒利益高 ÷ 販売高。下段の右は荒利前年比で、100%未満は赤です。</p>
+      <div class="ac-chart" data-source="weekly_total store_week"></div>
+      <div class="ac-scroll"><table class="ac-table ac-mx"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+    </div>
+  </section>
+
+  <!-- 改善シミュレーション -->
+  <section class="ac-page" id="sim" hidden>
+    <div class="ac-card ac-hero" id="sim-hero">
+      <p class="ac-big" id="sim-head">値引・廃棄を <b>100円</b> 減らすと、荒利益高は <b id="sim-k">約65円</b> 増えます。</p>
+      <p class="ac-note">売上が同じ場合。5店舗の毎週のデータから計算しています（くわしくは一番下）。</p>
+    </div>
+
+    <div class="ac-card" id="sim-card">
+      <h2>ロスを減らしたら、荒利益高はいくら増える？</h2>
+      <label class="ac-range" for="sim-ratio">ロス（値引＋廃棄）を減らす割合
+        <span class="ac-range-row"><input type="range" id="sim-ratio" min="10" max="50" step="10" value="20"><output id="sim-ratio-o" for="sim-ratio">2割</output></span>
+      </label>
+      <div class="ac-scroll">
+        <table class="ac-table ac-sim-table" id="sim-table" data-source="opportunity" data-row-key="key">
+          <thead><tr>
+            <th data-field="store">店舗</th>
+            <th data-field="loss_day">今のロス／日</th>
+            <th>減らす額／日</th>
+            <th>荒利益高の増加／日</th>
+            <th>1か月（30日）</th>
+            <th class="ac-hide-sm" aria-label="増加の大きさ"></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="ac-note">金額は最新の月計（1日あたり）をもとにしています。</p>
+    </div>
+
+    <div class="ac-card" id="sim-cats">
+      <h2>まずここから：ロスが大きいカテゴリ</h2>
+      <p class="ac-note">店ごとに、ロス額（値引＋廃棄）が大きいカテゴリ上位3つです。上で選んだ割合だけ減らした場合の増加額を出しています。</p>
+      <div class="ac-store-grid" id="sim-cat-grid"></div>
+    </div>
+
+    <details class="ac-card ac-details" id="model-card">
+      <summary><h2>計算の根拠（くわしく）</h2></summary>
+      <p class="ac-note">全店舗・全週のデータで「荒利率 ＝ 基本の荒利率 − 値引の影響 − 廃棄の影響」という式を当てはめました（重回帰）。週のデータが増えるたびに自動で計算し直します。</p>
+      <div class="ac-kpis">
+        <div class="ac-kpi"><span class="ac-kpi-l">値引を1円減らすと</span><span class="ac-kpi-v" id="m-bd" data-source="gp_model" data-field="gain_per_discount_yen" data-row="0">—</span><span class="ac-kpi-s">荒利益高が増える額</span></div>
+        <div class="ac-kpi"><span class="ac-kpi-l">廃棄を1円減らすと</span><span class="ac-kpi-v" id="m-bw" data-source="gp_model" data-field="gain_per_waste_yen" data-row="0">—</span><span class="ac-kpi-s">荒利益高が増える額</span></div>
+        <div class="ac-kpi"><span class="ac-kpi-l">式の当てはまり</span><span class="ac-kpi-v" id="m-r2" data-source="gp_model" data-field="r2" data-row="0">—</span><span class="ac-kpi-s">1に近いほど正確（<span id="m-n" data-source="gp_model" data-field="n" data-row="0">—</span>店週、平均誤差 <span id="m-mae" data-source="gp_model" data-field="mae_pt" data-row="0">—</span>）</span></div>
+      </div>
+      <div class="ac-chart" id="fit-chart" data-source="store_week gp_model"></div>
+      <ul class="ac-list">
+        <li>点は1店舗の1週。ロス率が高い週ほど、荒利率がまっすぐ下がっています。点線が式の線です。</li>
+        <li>売上が変わらない前提です。発注を減らしすぎると売り逃しが出ることがあります。</li>
+        <li>同じ店で比べると、ロスが多い週ほど販売前年比は低い傾向でした。売れない週に並べる量を減らせていないことがロスの主な原因です。</li>
+      </ul>
+    </details>
+  </section>
+
   <!-- 店舗別 -->
   <section class="ac-page" id="store" hidden>
     <div class="ac-chips" id="store-chips" role="group" aria-label="店舗"></div>
@@ -139,10 +253,12 @@
             <th data-source="store_week" data-field="discount_rate">値引率</th>
             <th data-field="waste">廃棄高</th>
             <th data-field="waste_yoy">廃棄前年比</th>
+            <th data-source="store_week" data-field="loss">ロス額<br>（値引＋廃棄）</th>
+            <th data-source="store_week" data-field="loss_rate">ロス率<br>（÷販売高）</th>
+            <th data-source="store_week" data-field="sell_rate">販売率</th>
             <th data-field="gross_profit">荒利益高</th>
             <th data-field="gp_yoy">荒利前年比</th>
             <th data-source="store_week" data-field="gp_rate">荒利率</th>
-            <th data-field="opp_loss">機会ロス高</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -191,11 +307,12 @@
             <th data-field="discount">値引高</th>
             <th data-source="month_rates" data-field="discount_rate">値引率</th>
             <th data-field="waste">廃棄高</th>
-            <th data-source="month_rates" data-field="loss_rate">ロス率</th>
+            <th data-source="month_rates" data-field="loss">ロス額<br>（値引＋廃棄）</th>
+            <th data-source="month_rates" data-field="loss_rate">ロス率<br>（÷販売高）</th>
+            <th data-source="month_rates" data-field="sell_rate">販売率</th>
             <th data-field="gross_profit">荒利益高</th>
             <th data-field="gp_yoy">荒利前年比</th>
             <th data-source="month_rates" data-field="gp_rate">荒利率</th>
-            <th data-field="opp_loss">機会ロス高</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -204,7 +321,7 @@
 
     <div class="ac-card" id="month-trend-card">
       <h2>月次検証レポートの前年比推移</h2>
-      <p class="ac-note">月次検証レポート下部のグラフの値です。点線が比較店（支店平均）。月次検証レポートがない店舗は表示されません。</p>
+      <p class="ac-note">月次検証レポート下部のグラフの値です。点線が比較店（支店平均）。</p>
       <div class="ac-chips" id="month-metric" role="group" aria-label="指標"></div>
       <div class="ac-chart" id="month-trend" data-source="monthly_trend"></div>
     </div>
@@ -216,7 +333,9 @@
       <h2>指標の見方</h2>
       <dl class="ac-dl">
         <dt>荒利率</dt><dd>荒利益高 ÷ 販売高。店の利益の残り方を、売上の大きさに関係なく比べられます。</dd>
-        <dt>ロス率</dt><dd>（値引高 ＋ 廃棄高）÷ 販売高。並べた量に対して売り切れなかった分の大きさです。</dd>
+        <dt>ロス額</dt><dd>値引高 ＋ 廃棄高。売り切れずに値引きした分と、捨てた分の合計です。</dd>
+        <dt>ロス率</dt><dd>ロス額 ÷ 販売高。売上の大きさが違う店どうしで、ロス額を比べるための率です。</dd>
+        <dt>販売率</dt><dd>販売高 ÷（販売高 ＋ 廃棄高 ＋ 値引高）。レポートの販売率と同じ式で、並べた量のうち売れた割合です。</dd>
         <dt>値引率</dt><dd>値引高 ÷ 販売高。</dd>
         <dt>前年比</dt><dd>レポートの値をそのまま載せています。100%未満は赤で表示します。廃棄前年比は少ないほど良い数字なので色を付けていません。</dd>
         <dt>採用SKU率</dt><dd>推奨SKU数に対して実際に並べたSKU数。品揃えを推奨どおりにしているかを示します。</dd>
@@ -248,10 +367,10 @@
 dash.calc('store_week', {
   inputs: ['weekly_total'],
   title: '店舗別の率（週）',
-  description: '値引率・ロス率・荒利率を、その週の販売高で割って求めた値。',
+  description: 'ロス額（値引高＋廃棄高）、販売率（販売高÷（販売高＋廃棄高＋値引高）、レポートと同じ式）、値引率・ロス率・荒利率（販売高で割った値）。',
   fn: (weekly_total) => weekly_total.map((r) => {
     const s = Number(r.sales), d = Number(r.discount), w = Number(r.waste), g = Number(r.gross_profit);
-    return { key: r.key, store: r.store, week_start: r.week_start, discount_rate: d / s, waste_rate: w / s, loss_rate: (d + w) / s, gp_rate: g / s };
+    return { key: r.key, store: r.store, week_start: r.week_start, loss: d + w, sell_rate: s / (s + d + w), discount_rate: d / s, waste_rate: w / s, loss_rate: (d + w) / s, gp_rate: g / s };
   }),
 });
 dash.calc('week_sum', {
@@ -269,7 +388,9 @@ dash.calc('week_sum', {
     const rows = [...by.values()].sort((a, b) => a.week_start.localeCompare(b.week_start));
     rows.forEach((o, i) => {
       o.gp_rate = o.gross_profit / o.sales;
-      o.loss_rate = (o.discount + o.waste) / o.sales;
+      o.loss = o.discount + o.waste;
+      o.loss_rate = o.loss / o.sales;
+      o.sell_rate = o.sales / (o.sales + o.loss);
       const p = rows[i - 1];
       o.sales_wow = p ? o.sales / p.sales : null;
       o.gp_wow = p ? o.gross_profit / p.gross_profit : null;
@@ -282,16 +403,69 @@ dash.calc('week_sum', {
 dash.calc('month_rates', {
   inputs: ['monthly_total'],
   title: '店舗別の率（月）',
-  description: '値引率・ロス率・荒利率を、その月の販売高で割って求めた値。',
+  description: 'ロス額（値引高＋廃棄高）、販売率（販売高÷（販売高＋廃棄高＋値引高）、レポートと同じ式）、値引率・ロス率・荒利率（販売高で割った値）。',
   fn: (monthly_total) => monthly_total.map((r) => {
     const s = Number(r.sales), d = Number(r.discount), w = Number(r.waste), g = Number(r.gross_profit);
-    return { key: r.key, store: r.store, month: r.month, discount_rate: d / s, loss_rate: (d + w) / s, gp_rate: g / s };
+    return { key: r.key, store: r.store, month: r.month, loss: d + w, sell_rate: s / (s + d + w), discount_rate: d / s, loss_rate: (d + w) / s, gp_rate: g / s };
   }),
+});
+
+dash.calc('cat_rates', {
+  inputs: ['weekly_category', 'monthly_category'],
+  title: 'カテゴリ別の販売率',
+  description: '販売高÷（販売高＋廃棄高＋値引高）。レポートの販売率と同じ式。',
+  fn: (weekly_category, monthly_category) => [...weekly_category, ...monthly_category].map((r) => {
+    const s = Number(r.sales), d = Number(r.discount), w = Number(r.waste);
+    return { key: r.key, sell_rate: s + d + w > 0 ? s / (s + d + w) : null };
+  }),
+});
+
+dash.calc('gp_model', {
+  inputs: ['weekly_total'],
+  title: '荒利率の回帰式',
+  description: '店週ごとに 荒利率 = a + b×値引率 + c×廃棄率 を最小二乗法で当てはめた結果。',
+  fn: (weekly_total) => {
+    const pts = weekly_total.map((r) => { const s = +r.sales; return [1, +r.discount / s, +r.waste / s, +r.gross_profit / s]; });
+    const A = [0, 1, 2].map((i) => [0, 1, 2].map((j) => d3.sum(pts, (p) => p[i] * p[j])));
+    const v = [0, 1, 2].map((i) => d3.sum(pts, (p) => p[i] * p[3]));
+    for (let i = 0; i < 3; i++) for (let k = i + 1; k < 3; k++) { const f = A[k][i] / A[i][i]; for (let j = i; j < 3; j++) A[k][j] -= f * A[i][j]; v[k] -= f * v[i]; }
+    const x = [0, 0, 0];
+    for (let i = 2; i >= 0; i--) x[i] = (v[i] - d3.sum([0, 1, 2].filter((j) => j > i), (j) => A[i][j] * x[j])) / A[i][i];
+    const pred = pts.map((p) => x[0] + x[1] * p[1] + x[2] * p[2]);
+    const mean = d3.mean(pts, (p) => p[3]);
+    const r2 = 1 - d3.sum(pts, (p, i) => (p[3] - pred[i]) ** 2) / d3.sum(pts, (p) => (p[3] - mean) ** 2);
+    return [{ base_gp_rate: x[0], coef_discount: x[1], coef_waste: x[2], gain_per_discount_yen: -x[1], gain_per_waste_yen: -x[2], r2, n: pts.length, mae_pt: d3.mean(pts, (p, i) => Math.abs(p[3] - pred[i])) * 100 }];
+  },
+});
+dash.calc('opportunity', {
+  inputs: ['monthly_total', 'gp_model'],
+  title: '店舗ごとの伸びしろ',
+  description: '最新月のロス率を一番低い店にそろえた場合の荒利益高の増加。増加 = 差×販売高×（値引・廃棄の係数の平均）。',
+  fn: (monthly_total, gp_model) => {
+    const m = gp_model[0], k = (m.gain_per_discount_yen + m.gain_per_waste_yen) / 2;
+    const last = d3.max(monthly_total, (r) => r.month);
+    const rows = monthly_total.filter((r) => r.month === last).map((r) => ({ key: r.key, store: r.store, month: r.month, sales: +r.sales, discount: +r.discount, waste: +r.waste, loss_day: +r.discount + +r.waste, loss_rate: (+r.discount + +r.waste) / +r.sales }));
+    const best = d3.min(rows, (r) => r.loss_rate);
+    return rows.map((r) => ({ ...r, gap_pt: (r.loss_rate - best) * 100, gain_day: (r.loss_rate - best) * r.sales * k, gain_30: (r.loss_rate - best) * r.sales * k * 30 }));
+  },
+});
+dash.calc('cat_opportunity', {
+  inputs: ['monthly_category', 'gp_model'],
+  title: 'カテゴリ別のロス削減効果',
+  description: '最新月のカテゴリごとに、値引と廃棄をそれぞれ2割減らした場合の荒利益高の増加（係数×額×0.2）。',
+  fn: (monthly_category, gp_model) => {
+    const m = gp_model[0], last = d3.max(monthly_category, (r) => r.month);
+    return monthly_category.filter((r) => r.month === last).map((r) => {
+      const s = +r.sales, d = +r.discount, w = +r.waste;
+      return { key: r.key, store: r.store, month: r.month, category: r.category, discount: d, waste: w, loss: d + w, sell_rate: s + d + w > 0 ? s / (s + d + w) : null, gain_20: 0.2 * (d * m.gain_per_discount_yen + w * m.gain_per_waste_yen) };
+    });
+  },
 });
 
 /* ---------- helpers ---------- */
 const fInt = d3.format(',');
 const fRate = d3.format('.1%');
+const fSell = (v) => (v == null ? '—' : d3.format('.0%')(v));
 const fPt = (v) => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v * 100).toFixed(1) + 'pt';
 const fYoy = (v) => (v == null || v === '' ? '—' : (Number.isInteger(Number(v)) ? Number(v) : Number(v).toFixed(1)) + '%');
 const fRatio = (v) => (v == null ? '—' : (v * 100).toFixed(1) + '%');
@@ -337,7 +511,8 @@ function lineChart(box, cfg) {
   const W = Math.max(280, box.clientWidth), H = 300;
   const all = cfg.series.flatMap((s) => [...s.values.values()].filter((v) => v != null));
   const lo = Math.min(cfg.ref ?? Infinity, d3.min(all)), hi = Math.max(cfg.ref ?? -Infinity, d3.max(all));
-  const pad = (hi - lo) * 0.08 || 5;
+  const span0 = hi - lo;
+  const pad = span0 * 0.08 || Math.abs(hi) * 0.05 || 1;
   const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
   const probe = svg.append('text').attr('font-size', 12).style('font-family', 'var(--font-anthropic-sans)');
   const endTxt = (s) => `${s.name} ${cfg.fmt(s.values.get(cfg.xs[cfg.xs.length - 1]))}`;
@@ -461,8 +636,9 @@ function drawOverview() {
     set('#kpi-gp .ac-kpi-s span', w.gp_wow == null ? '—' : fRatio(w.gp_wow), w.gp_wow != null && w.gp_wow < 1 ? 'ac-neg' : '');
     set('#kpi-gprate .ac-kpi-v', fRate(w.gp_rate));
     set('#kpi-gprate .ac-kpi-s span', w.gp_rate_diff == null ? '—' : fPt(w.gp_rate_diff), w.gp_rate_diff == null ? '' : w.gp_rate_diff < 0 ? 'ac-neg' : 'ac-pos');
-    set('#kpi-loss .ac-kpi-v', fRate(w.loss_rate));
-    set('#kpi-loss .ac-kpi-s span', w.loss_rate_diff == null ? '—' : fPt(w.loss_rate_diff), w.loss_rate_diff == null ? '' : w.loss_rate_diff > 0 ? 'ac-neg' : 'ac-pos');
+    set('#kpi-loss .ac-kpi-v', fInt(w.loss));
+    set('#kpi-loss .lr', fRate(w.loss_rate));
+    set('#kpi-loss .lrd', w.loss_rate_diff == null ? '—' : fPt(w.loss_rate_diff), w.loss_rate_diff == null ? '' : w.loss_rate_diff > 0 ? 'ac-neg' : 'ac-pos');
   }
   // scorecard
   const tb = document.querySelector('#score-table tbody');
@@ -473,8 +649,8 @@ function drawOverview() {
     tb.replaceChildren(...rows.map((r) => {
       const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
       const c0 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = colors[order.indexOf(r.store) % colors.length]; c0.append(dot, document.createTextNode(r.store)); c0.title = fullName(r.store);
-      tr.append(c0, td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fRate(q.loss_rate)),
-        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)), td(fInt(r.opp_loss), 'ac-hide-sm'), td(fYoy(r.discount_sku_match), 'ac-hide-sm'));
+      tr.append(c0, td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
+        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)), td(fYoy(r.discount_sku_match), 'ac-hide-sm'));
       return tr;
     }));
   } else tb.replaceChildren();
@@ -504,17 +680,17 @@ function drawStore() {
   if (!state.store || !order.includes(state.store)) state.store = order[0];
   const chips = el('store-chips');
   chips.replaceChildren(...order.map((s) => {
-    const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = fullName(s); b.setAttribute('aria-pressed', String(s === state.store));
+    const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = s; b.title = fullName(s); b.setAttribute('aria-pressed', String(s === state.store));
     b.addEventListener('click', () => { state.store = s; draw(); }); return b;
   }));
-  el('store-weeks-title').textContent = `${fullName(state.store)}　週別の推移`;
+  el('store-weeks-title').textContent = `${state.store}　週別の推移`;
   const rates = new Map(dash.data('store_week').data.map((r) => [r.key, r]));
   const mine = wt.filter((r) => r.store === state.store).sort((a, b) => a.week_start.localeCompare(b.week_start));
   document.querySelector('#store-week-table tbody').replaceChildren(...mine.map((r) => {
     const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
     if (r.week_start === state.week) tr.style.fontWeight = '600';
     tr.append(td(r.week_start), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fYoy(r.sales_wow)), td(fInt(r.discount)), td(fRate(q.discount_rate)),
-      td(fInt(r.waste)), td(fYoy(r.waste_yoy)), td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)), td(fInt(r.opp_loss)));
+      td(fInt(r.waste)), td(fYoy(r.waste_yoy)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)), td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)));
     return tr;
   }));
   // yoy chart
@@ -545,11 +721,13 @@ function drawCategory(mine, endOf) {
   const src = isMonth ? 'monthly_category' : 'weekly_category';
   if (dash.data(src).status !== 'ok') return;
   table.dataset.source = src;
-  const cols = [['category', 'カテゴリ', 's'], ['sales', '販売高', 'n'], ['sales_yoy', '販売前年比', 'y'], ['discount', '値引高', 'n'], ['waste', '廃棄高', 'n'], ['gross_profit', '荒利益高', 'n'], ['gp_yoy', '荒利前年比', 'y']];
+  const sellOk = dash.data('cat_rates').status === 'ok';
+  const sell = new Map(sellOk ? dash.data('cat_rates').data.map((r) => [r.key, r.sell_rate]) : []);
+  const cols = [['category', 'カテゴリ', 's'], ['sales', '販売高', 'n'], ['sales_yoy', '販売前年比', 'y'], ['discount', '値引高', 'n'], ['waste', '廃棄高', 'n'], ['sell_rate', '販売率', 'r'], ['gross_profit', '荒利益高', 'n'], ['gp_yoy', '荒利前年比', 'y']];
   if (!isMonth) cols.push(['sku_rate', '採用SKU率', 'p'], ['discount_sku_match', '値引SKU一致', 'p']);
   const hr = table.querySelector('thead tr');
   hr.replaceChildren(...cols.map(([k, label]) => {
-    const th = document.createElement('th'); th.dataset.field = k;
+    const th = document.createElement('th'); th.dataset.field = k; if (k === 'sell_rate') th.dataset.source = 'cat_rates';
     const b = document.createElement('button'); b.className = 'ac-th-btn'; b.type = 'button'; b.textContent = label + (state.catSort.k === k ? (state.catSort.d < 0 ? ' ↓' : ' ↑') : '');
     th.setAttribute('aria-sort', state.catSort.k === k ? (state.catSort.d < 0 ? 'descending' : 'ascending') : 'none');
     b.addEventListener('click', () => { state.catSort = { k, d: state.catSort.k === k ? -state.catSort.d : -1 }; draw(); });
@@ -558,12 +736,14 @@ function drawCategory(mine, endOf) {
   if (!cols.some((c) => c[0] === state.catSort.k)) state.catSort = { k: 'sales', d: -1 };
   const rows = dash.data(src).data.filter((r) => r.store === state.store && (isMonth ? r.month === state.catPeriod.slice(1) : r.week_start === state.catPeriod));
   const k = state.catSort.k;
-  rows.sort((a, b) => (k === 'category' ? a.category.localeCompare(b.category, 'ja') : (Number(a[k] ?? -1e9) - Number(b[k] ?? -1e9))) * state.catSort.d);
+  const valOf = (r, c) => (c === 'sell_rate' ? sell.get(r.key) : r[c]);
+  rows.sort((a, b) => (k === 'category' ? a.category.localeCompare(b.category, 'ja') : (Number(valOf(a, k) ?? -1e9) - Number(valOf(b, k) ?? -1e9))) * state.catSort.d);
   table.querySelector('tbody').replaceChildren(...rows.map((r) => {
     const tr = document.createElement('tr'); tr.dataset.key = r.key;
     cols.forEach(([c, , t]) => {
-      const v = r[c];
+      const v = valOf(r, c);
       if (t === 's') tr.append(td(v));
+      else if (t === 'r') tr.append(td(fSell(v)));
       else if (t === 'n') tr.append(td(fInt(v), Number(v) < 0 ? 'ac-neg' : ''));
       else if (t === 'y') tr.append(td(fYoy(v), yoyCls(v)));
       else tr.append(td(fYoy(v), c === 'sku_rate' && v != null && (v >= 110 || v < 90) ? 'ac-neg' : ''));
@@ -604,8 +784,8 @@ function drawMonth() {
     document.querySelector('#month-table tbody').replaceChildren(...rows.map((r) => {
       const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
       const c0 = td(r.store); c0.title = r.store_name || r.store;
-      tr.append(c0, td(r.month), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fRate(q.loss_rate)),
-        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)), td(fInt(r.opp_loss)));
+      tr.append(c0, td(r.month), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
+        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)));
       return tr;
     }));
   }
@@ -630,9 +810,179 @@ function drawMonth() {
   });
 }
 
+
+/* ---------- 週別の比較 ---------- */
+const CMP = [
+  { id: 'cmp-discount', amt: 'discount', rate: 'discount_rate', yoy: null, lowGood: true,
+    opts: [['discount_rate', '値引率'], ['discount', '値引高']] },
+  { id: 'cmp-waste', amt: 'waste', rate: 'waste_rate', yoy: 'waste_yoy', yoyGood: 'low', lowGood: true,
+    opts: [['waste_rate', '廃棄率'], ['waste', '廃棄高'], ['waste_yoy', '廃棄前年比']] },
+  { id: 'cmp-gp', amt: 'gross_profit', rate: 'gp_rate', yoy: 'gp_yoy', yoyGood: 'high', lowGood: false,
+    opts: [['gp_rate', '荒利率'], ['gross_profit', '荒利益高'], ['gp_yoy', '荒利前年比']] },
+];
+const cmpSel = {};
+function drawCompare() {
+  if (!ok('weekly_total', 'store_week', 'week_sum')) return;
+  const wt = dash.data('weekly_total').data, rates = new Map(dash.data('store_week').data.map((r) => [r.key, r]));
+  const sums = new Map(dash.data('week_sum').data.map((r) => [r.week_start, r]));
+  const order = storeOrder(wt), weeks = [...new Set(wt.map((r) => r.week_start))].sort();
+  const endOf = new Map(wt.map((r) => [r.week_start, r.week_end]));
+  const get = (s, w) => wt.find((r) => r.store === s && r.week_start === w);
+  const mark = (n, src, field, key) => { n.dataset.source = src; n.dataset.field = field; n.dataset.where = `key=${encodeURIComponent(key)}`; };
+  CMP.forEach((c) => {
+    const card = el(c.id);
+    if (!cmpSel[c.id]) cmpSel[c.id] = c.opts[0][0];
+    const sel = cmpSel[c.id];
+    card.querySelector('.ac-chips').replaceChildren(...c.opts.map(([k, l]) => {
+      const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = l; b.setAttribute('aria-pressed', String(k === sel));
+      b.addEventListener('click', () => { cmpSel[c.id] = k; draw(); }); return b;
+    }));
+    // chart
+    const isRate = sel.endsWith('_rate'), isYoy = sel.endsWith('_yoy');
+    const valOf = (r) => (isRate ? rates.get(r.key)[sel] : Number(r[sel]));
+    lineChart(card.querySelector('.ac-chart'), {
+      xs: weeks, xLabel: (k) => wkLabel(k, endOf.get(k)), ref: isYoy ? 100 : null,
+      fmt: (v) => (v == null ? '—' : isRate ? d3.format('.1%')(v) : isYoy ? `${Math.round(v)}%` : fInt(Math.round(v))),
+      series: order.map((s, i) => ({ name: s, color: dash.colors[i % dash.colors.length], values: new Map(weeks.map((w) => { const r = get(s, w); return [w, r ? valOf(r) : null]; })) })),
+    });
+    // matrix table: rows = stores, cols = weeks
+    const t = card.querySelector('table');
+    const hr = document.createElement('tr');
+    hr.append(...['店舗', ...weeks.map((w) => wkLabel(w, endOf.get(w)))].map((h) => { const th = document.createElement('th'); th.textContent = h; return th; }));
+    t.querySelector('thead').replaceChildren(hr);
+    // best / worst per week by rate
+    const rank = new Map();
+    weeks.forEach((w) => {
+      const vals = order.map((s) => { const r = get(s, w); return r ? [s, rates.get(r.key)[c.rate]] : null; }).filter(Boolean).sort((a, b) => a[1] - b[1]);
+      if (vals.length > 1) rank.set(w, c.lowGood ? { best: vals[0][0], worst: vals[vals.length - 1][0] } : { best: vals[vals.length - 1][0], worst: vals[0][0] });
+    });
+    t.querySelector('tbody').replaceChildren(...order.map((s, i) => {
+      const tr = document.createElement('tr');
+      const c0 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = dash.colors[i % dash.colors.length];
+      c0.append(dot, document.createTextNode(s)); c0.title = fullName(s); tr.append(c0);
+      weeks.forEach((w) => {
+        const r = get(s, w), cell = document.createElement('td');
+        if (r) {
+          const q = rates.get(r.key);
+          const v = document.createElement('span'); v.className = 'v'; v.textContent = fInt(r[c.amt]); mark(v, 'weekly_total', c.amt, r.key);
+          const sub = document.createElement('span'); sub.className = 's';
+          const rt = document.createElement('span'); rt.textContent = fRate(q[c.rate]); mark(rt, 'store_week', c.rate, r.key); sub.append(rt);
+          if (c.yoy) {
+            const y = document.createElement('span'); y.textContent = ` ／ 前年比 ${fYoy(r[c.yoy])}`; mark(y, 'weekly_total', c.yoy, r.key);
+            if (c.yoyGood === 'high' && Number(r[c.yoy]) < 100) y.className = 'ac-neg';
+            sub.append(y);
+          }
+          cell.append(v, sub);
+          const rk = rank.get(w);
+          if (rk && rk.worst === s) cell.classList.add('worst');
+          if (rk && rk.best === s) cell.classList.add('best');
+        } else cell.textContent = '—';
+        tr.append(cell);
+      });
+      return tr;
+    }));
+    // total row
+    const fr = document.createElement('tr'); fr.append(td('5店合計'));
+    weeks.forEach((w) => {
+      const sm = sums.get(w), cell = document.createElement('td');
+      if (sm) {
+        const amt = c.amt === 'gross_profit' ? sm.gross_profit : sm[c.amt];
+        const v = document.createElement('span'); v.className = 'v'; v.textContent = fInt(amt);
+        v.dataset.source = 'week_sum'; v.dataset.field = c.amt; v.dataset.where = `week_start=${w}`;
+        const sub = document.createElement('span'); sub.className = 's'; sub.textContent = fRate(amt / sm.sales);
+        cell.append(v, sub);
+      }
+      fr.append(cell);
+    });
+    t.querySelector('tfoot').replaceChildren(fr);
+  });
+}
+
+
+/* ---------- 改善シミュレーション ---------- */
+el('sim-ratio').addEventListener('input', () => drawSim());
+function fitChart(box, pts, m, order) {
+  box.replaceChildren();
+  const W = Math.max(280, box.clientWidth), H = 300, mg = { l: 52, r: 24, t: 14, b: 42 };
+  const x = d3.scaleLinear([d3.min(pts, (p) => p.x) - 0.01, d3.max(pts, (p) => p.x) + 0.01], [mg.l, W - mg.r]).nice();
+  const y = d3.scaleLinear([d3.min(pts, (p) => p.y) - 0.01, d3.max(pts, (p) => p.y) + 0.01], [H - mg.b, mg.t]).nice();
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
+  svg.selectAll(null).data(y.ticks(5)).join('line').attr('x1', mg.l).attr('x2', W - mg.r).attr('y1', y).attr('y2', y).style('stroke', 'var(--cds-chart-grid)');
+  svg.selectAll(null).data(y.ticks(5)).join('text').attr('x', mg.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
+  svg.selectAll(null).data(x.ticks(6)).join('text').attr('x', x).attr('y', H - mg.b + 16).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
+  svg.append('text').attr('x', (mg.l + W - mg.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('ロス率（値引＋廃棄）÷販売高');
+  svg.append('text').attr('transform', `translate(12,${(mg.t + H - mg.b) / 2}) rotate(-90)`).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('荒利率');
+  // fitted line using the average loss coefficient
+  const k = (m.coef_discount + m.coef_waste) / 2, [x0, x1] = x.domain();
+  svg.append('line').attr('x1', x(x0)).attr('x2', x(x1)).attr('y1', y(m.base_gp_rate + k * x0)).attr('y2', y(m.base_gp_rate + k * x1)).style('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '5 4').attr('stroke-width', 1.5);
+  const tip = makeTip(box);
+  pts.forEach((p) => {
+    svg.append('circle').attr('cx', x(p.x)).attr('cy', y(p.y)).attr('r', 5.5).style('fill', dash.colors[order.indexOf(p.store) % dash.colors.length]).attr('opacity', 0.9)
+      .on('mousemove', () => { const s = box.clientWidth / W; tip.show(x(p.x) * s, y(p.y) * s, `${p.store} ${p.week}`, [[null, 'ロス率', fRate(p.x)], [null, '荒利率', fRate(p.y)]]); })
+      .on('mouseleave', () => tip.hide());
+  });
+  const lg = svg.append('g').attr('transform', `translate(${W - mg.r - 8},${mg.t + 6})`);
+  order.forEach((s, i) => {
+    const gy = i * 16;
+    lg.append('circle').attr('cx', -60).attr('cy', gy).attr('r', 4).style('fill', dash.colors[i % dash.colors.length]);
+    lg.append('text').attr('x', -50).attr('y', gy + 4).attr('font-size', 12).style('fill', 'var(--color-fg)').text(s);
+  });
+}
+function drawSim() {
+  if (!ok('gp_model', 'store_week', 'weekly_total', 'opportunity')) return;
+  const m = dash.data('gp_model').data[0];
+  const order = storeOrder(dash.data('weekly_total').data);
+  const kd = m.gain_per_discount_yen, kw = m.gain_per_waste_yen;
+  el('sim-k').textContent = `約${Math.round(((kd + kw) / 2) * 100)}円`;
+  const ratio = +el('sim-ratio').value / 100;
+  el('sim-ratio-o').textContent = `${Math.round(ratio * 10)}割`;
+  const gainOf = (d, w) => ratio * (d * kd + w * kw);
+  // store table
+  const rows = dash.data('opportunity').data.map((r) => ({ ...r, cut: ratio * r.loss_day, gain: gainOf(r.discount, r.waste) })).sort((a, b) => b.gain - a.gain);
+  const max = d3.max(rows, (r) => r.gain) || 1;
+  document.querySelector('#sim-table tbody').replaceChildren(...rows.map((r) => {
+    const tr = document.createElement('tr'); tr.dataset.key = r.key;
+    const c0 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = dash.colors[order.indexOf(r.store) % dash.colors.length];
+    c0.append(dot, document.createTextNode(r.store)); c0.title = fullName(r.store);
+    const bc = document.createElement('td'); bc.className = 'ac-barcell ac-hide-sm'; const bar = document.createElement('div'); bar.className = 'ac-bar'; bar.style.width = `${(r.gain / max) * 100}%`; bc.append(bar);
+    tr.append(c0, td(fInt(r.loss_day)), td(`−${fInt(Math.round(r.cut))}`), td(`+${fInt(Math.round(r.gain))}`, 'gain'), td(`+${fInt(Math.round(r.gain * 30))}`, 'gain'), bc);
+    return tr;
+  }));
+  // category top 3 per store
+  if (ok('cat_opportunity')) {
+    const cats = dash.data('cat_opportunity').data;
+    const best = d3.min(rows, (r) => r.loss_rate);
+    el('sim-cat-grid').replaceChildren(...rows.map((r) => {
+      const box = document.createElement('div'); box.className = 'ac-store';
+      const h = document.createElement('h3'); h.textContent = r.store;
+      const meta = document.createElement('div'); meta.className = 'meta';
+      meta.textContent = `ロス率 ${fRate(r.loss_rate)}` + (r.loss_rate > best ? `（一番低い店より +${((r.loss_rate - best) * 100).toFixed(1)}pt）` : '（5店で一番低い）');
+      const ol = document.createElement('ol');
+      cats.filter((c) => c.store === r.store).sort((a, b) => b.loss - a.loss).slice(0, 3).forEach((c) => {
+        const li = document.createElement('li');
+        const g = document.createElement('b'); g.textContent = `+${fInt(Math.round(gainOf(c.discount, c.waste)))}／日`;
+        const sp = document.createElement('span'); sp.textContent = `（ロス ${fInt(c.loss)}／日 → ${Math.round(ratio * 10)}割減で）`;
+        li.append(`${c.category} `, g, ' ', sp); ol.append(li);
+      });
+      box.append(h, meta, ol); return box;
+    }));
+  }
+  // details
+  const set = (id, t) => { el(id).textContent = t; };
+  set('m-bd', `${kd.toFixed(2)}円`); set('m-bw', `${kw.toFixed(2)}円`);
+  set('m-r2', m.r2.toFixed(3)); set('m-n', String(m.n)); set('m-mae', `${m.mae_pt.toFixed(2)}pt`);
+  if (el('model-card').open) {
+    const wt = dash.data('weekly_total').data, wkOf = new Map(wt.map((r) => [r.key, wkLabel(r.week_start, r.week_end)]));
+    fitChart(el('fit-chart'), dash.data('store_week').data.map((r) => ({ x: r.loss_rate, y: r.gp_rate, store: r.store, week: wkOf.get(r.key) })), m, order);
+  }
+}
+el('model-card').addEventListener('toggle', () => drawSim());
+
 function draw() {
   drawHeader();
   if (state.page === 'overview') drawOverview();
+  if (state.page === 'compare') drawCompare();
+  if (state.page === 'sim') drawSim();
   if (state.page === 'store') drawStore();
   if (state.page === 'month') drawMonth();
 }
@@ -640,5 +990,5 @@ function draw() {
 dash.onData(draw);
 
 const named = location.hash.slice(1);
-if (['overview', 'store', 'month', 'notes'].includes(named)) setPage(named);
+if (['overview', 'compare', 'sim', 'store', 'month', 'notes'].includes(named)) setPage(named);
 </script>
