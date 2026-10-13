@@ -1,26 +1,37 @@
 <style>
 /* Layout: one column; header with week picker, then tab bar; each tab = summary first, detail below. */
-.ac{max-width:1180px;margin-inline:auto;display:flex;flex-direction:column;gap:var(--cds-gap-lg);font-family:var(--font-anthropic-sans);color:var(--color-fg);font-variant-numeric:tabular-nums}
+/* Look: a store ledger. Quiet panels, one serif voice for headline numbers, semantic color only for good/bad. */
+.ac{--ac-tint:color-mix(in srgb, var(--color-fg) 4%, transparent);--ac-good-bg:color-mix(in srgb, var(--color-ok) 13%, transparent);--ac-bad-bg:color-mix(in srgb, var(--color-bad) 12%, transparent);max-width:1180px;margin-inline:auto;display:flex;flex-direction:column;gap:var(--cds-gap-xl);font-family:var(--font-anthropic-sans);color:var(--color-fg);font-variant-numeric:tabular-nums}
+.ac-top{display:flex;flex-direction:column;gap:var(--cds-gap-md)}
 .ac-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:var(--cds-gap-md)}
 .ac-head-text{min-width:0;flex:1 1 30rem;display:flex;flex-direction:column;gap:var(--cds-gap-xs)}
 .ac-eyebrow{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);letter-spacing:.04em}
 .ac-title{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);margin:0;text-wrap:balance}
-.ac-take{margin:0;font-size:var(--cds-font-size-body);line-height:1.7;max-width:62rem}
+.ac-take-box{background:var(--ac-tint);border-radius:var(--cds-radius);padding:var(--cds-pad-md) var(--cds-pad-lg);display:flex;flex-direction:column;gap:var(--cds-gap-xs)}
+.ac-take-l{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);letter-spacing:.06em}
+.ac-take{margin:0;font-size:var(--cds-font-size-body);line-height:1.8;max-width:64rem}
 .ac-take b{font-weight:600}
 .ac-ctl{display:flex;flex-direction:column;gap:var(--cds-gap-xs);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
-.ac-ctl select{font:inherit;font-size:var(--cds-font-size-body);color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-xs) var(--cds-pad-sm)}
-.ac-tabs{display:flex;gap:var(--cds-gap-xs);border-bottom:1px solid var(--color-border-line);overflow-x:auto}
-.ac-tab{font:inherit;font-size:var(--cds-font-size-body);background:none;border:0;border-bottom:2px solid transparent;color:var(--color-fg-muted);padding:var(--cds-pad-sm) var(--cds-pad-md);cursor:pointer;white-space:nowrap}
-.ac-tab[aria-selected="true"]{color:var(--color-fg);border-bottom-color:var(--color-fg);font-weight:600}
+.ac-ctl select{font:inherit;font-size:var(--cds-font-size-body);font-weight:600;color:var(--color-fg);background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:999px;padding:var(--cds-pad-xs) var(--cds-pad-md);cursor:pointer}
+.ac-tabs{display:flex;gap:4px;padding:4px;background:var(--ac-tint);border-radius:calc(var(--cds-radius) + 4px);overflow-x:auto;scrollbar-width:none}
+.ac-tab{font:inherit;font-size:var(--cds-font-size-body);background:none;border:1px solid transparent;border-radius:var(--cds-radius);color:var(--color-fg-muted);padding:var(--cds-pad-xs) var(--cds-pad-md);cursor:pointer;white-space:nowrap;flex:1 0 auto}
+.ac-tab:hover{color:var(--color-fg)}
+.ac-tab[aria-selected="true"]{color:var(--color-fg);background:var(--color-panel);border-color:var(--color-border-line);font-weight:600;box-shadow:0 1px 2px color-mix(in srgb, var(--color-fg) 8%, transparent)}
 .ac-tab:focus-visible,.ac-chip:focus-visible,.ac-th-btn:focus-visible{outline:2px solid var(--color-fg);outline-offset:2px}
 .ac-page{display:flex;flex-direction:column;gap:var(--cds-gap-lg)}
 .ac-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));gap:var(--cds-gap-md)}
 .ac-kpi{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:flex;flex-direction:column;gap:var(--cds-gap-xs);min-width:0}
+.ac-spark{height:36px;margin-top:var(--cds-gap-xs)}
+.ac-spark svg{display:block}
+.ac-delta{display:inline-flex;align-items:center;gap:2px;padding:0 .5rem;border-radius:999px;font-weight:600;background:var(--ac-tint);color:var(--color-fg-muted)}
+.ac-delta.ac-neg{background:var(--ac-bad-bg);color:var(--color-bad)}
+.ac-delta.ac-pos{background:var(--ac-good-bg);color:var(--color-ok)}
 .ac-kpi-l{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
 .ac-kpi-v{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);line-height:1.15}
-.ac-kpi-s{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ac-kpi-s{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);display:flex;flex-wrap:wrap;align-items:center;gap:.35rem}
 .ac-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,26rem),1fr));gap:var(--cds-gap-md)}
-.ac-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:flex;flex-direction:column;gap:var(--cds-gap-sm);min-width:0}
+.ac-card{background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-lg);display:flex;flex-direction:column;gap:var(--cds-gap-md);min-width:0}
+.ac-card > .ac-note:first-of-type{margin-top:calc(-1 * var(--cds-gap-sm))}
 .ac-card h2{margin:0;font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium)}
 .ac-note{margin:0;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);line-height:1.6}
 .ac-section{margin:0;font-size:var(--cds-font-size-heading);font-weight:var(--cds-font-weight-medium)}
@@ -28,8 +39,13 @@
 .ac-table{width:100%;border-collapse:collapse;font-size:var(--cds-font-size-caption)}
 .ac-table th,.ac-table td{padding:var(--cds-pad-xs) var(--cds-pad-sm);text-align:right;white-space:nowrap;border-bottom:1px solid var(--color-border-line)}
 .ac-table th:first-child,.ac-table td:first-child{text-align:left}
-.ac-table th{font-weight:500;color:var(--color-fg-muted);vertical-align:bottom}
-.ac-table tbody tr:hover td{background:var(--cds-chart-grid)}
+.ac-table th{font-weight:500;color:var(--color-fg-muted);vertical-align:bottom;background:var(--ac-tint);line-height:1.35}
+.ac-table thead th:first-child{border-top-left-radius:6px}.ac-table thead th:last-child{border-top-right-radius:6px}
+.ac-scroll .ac-table td:first-child{position:sticky;left:0;background:var(--color-panel);z-index:1}
+.ac-rank{display:inline-grid;place-items:center;width:1.4rem;height:1.4rem;border-radius:50%;background:var(--ac-tint);font-size:var(--cds-font-size-caption);font-weight:600;margin-right:.5rem}
+.ac-inbar{display:inline-block;height:.45rem;border-radius:3px;background:var(--color-ok);opacity:.5;margin-left:.45rem;vertical-align:middle}
+.ac-table tbody tr:hover td{background:var(--ac-tint)}
+.ac-scroll .ac-table tbody tr:hover td:first-child{background:color-mix(in srgb, var(--color-fg) 4%, var(--color-panel))}
 .ac-tall{max-height:34rem;overflow:auto}
 .ac-tall th{position:sticky;top:0;background:var(--color-panel);z-index:1}
 .ac-th-btn{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
@@ -56,8 +72,8 @@
 .ac-mx td .v{display:block;font-size:var(--cds-font-size-body)}
 .ac-mx td .s{display:block;color:var(--color-fg-muted)}
 .ac-mx td .s.ac-neg{color:var(--color-bad)}
-.ac-mx td.worst{background:color-mix(in srgb, var(--color-bad) 12%, transparent)}
-.ac-mx td.best{background:color-mix(in srgb, var(--color-ok) 12%, transparent)}
+.ac-mx td.worst{background:var(--ac-bad-bg)}
+.ac-mx td.best{background:var(--ac-good-bg)}
 .ac-mx tfoot td{font-weight:600;border-top:1px solid var(--color-fg-muted)}
 .ac-cmp-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--cds-gap-sm)}
 .ac-legend{display:flex;flex-wrap:wrap;gap:var(--cds-gap-md);font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
@@ -73,7 +89,7 @@
 .ac-btn{font:inherit;font-size:var(--cds-font-size-caption);border:1px solid var(--color-border-line);background:var(--color-bg);color:var(--color-fg);border-radius:var(--cds-radius);padding:var(--cds-pad-xs) var(--cds-pad-md);cursor:pointer;align-self:flex-start}
 .ac-btn:focus-visible{outline:2px solid var(--color-fg);outline-offset:2px}
 .ac-big{font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title);line-height:1.3;margin:0;text-wrap:balance}
-.ac-hero{background:var(--color-panel)}
+.ac-hero{background:var(--ac-tint);border-color:transparent}
 .ac-hero .ac-big b{font-weight:600}
 .ac-sim-table td{font-size:var(--cds-font-size-body)}
 .ac-sim-table td.gain{font-weight:600;color:var(--color-ok)}
@@ -88,20 +104,32 @@
 .ac-store li b{color:var(--color-ok);font-weight:600}
 .ac-details summary{cursor:pointer;list-style:revert}
 .ac-details summary h2{display:inline}
+.ac-lock{max-width:22rem;margin:12vh auto 0;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-xl);display:flex;flex-direction:column;gap:var(--cds-gap-md);font-family:var(--font-anthropic-sans);color:var(--color-fg)}
+.ac-lock h1{margin:0;font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title)}
+.ac-lock-row{display:flex;gap:var(--cds-gap-sm)}
+.ac-lock input{flex:1;min-width:0;font:inherit;font-size:var(--cds-font-size-body);letter-spacing:.3em;color:var(--color-fg);background:var(--color-bg);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-sm) var(--cds-pad-md)}
+.ac-lock input:focus-visible{outline:2px solid var(--color-fg);outline-offset:1px}
+.ac-lock button{font:inherit;font-weight:600;color:var(--color-bg);background:var(--color-fg);border:0;border-radius:var(--cds-radius);padding:var(--cds-pad-sm) var(--cds-pad-lg);cursor:pointer}
+.ac-lock-err{margin:0;min-height:1.2em;font-size:var(--cds-font-size-caption);color:var(--color-bad)}
 @media (max-width:640px){.ac-hide-sm{display:none}}
 </style>
 
-<div class="ac">
-  <header class="ac-head">
-    <div class="ac-head-text">
-      <div class="ac-eyebrow">AI.COカテゴリ ／ お店づくりレポート②</div>
-      <h1 class="ac-title" id="title">AI.CO 週次検証</h1>
+<div class="ac" id="ac-main">
+  <div class="ac-top">
+    <header class="ac-head">
+      <div class="ac-head-text">
+        <div class="ac-eyebrow">AI.COカテゴリ ／ お店づくりレポート②</div>
+        <h1 class="ac-title" id="title">AI.CO 週次検証</h1>
+      </div>
+      <label class="ac-ctl" for="week-pick">表示する週
+        <select id="week-pick" aria-label="表示する週"></select>
+      </label>
+    </header>
+    <div class="ac-take-box">
+      <span class="ac-take-l">この週のポイント</span>
       <p class="ac-take" id="takeaway"><span class="dash-skeleton">—</span></p>
     </div>
-    <label class="ac-ctl" for="week-pick">表示する週
-      <select id="week-pick" aria-label="表示する週"></select>
-    </label>
-  </header>
+  </div>
 
   <div class="ac-tabs" role="tablist" aria-label="ページ">
     <button class="ac-tab" role="tab" id="tab-overview" data-page="overview" aria-selected="true">5店舗サマリー</button>
@@ -115,10 +143,10 @@
   <!-- 5店舗サマリー -->
   <section class="ac-page" id="overview">
     <div class="ac-kpis">
-      <div class="ac-kpi" id="kpi-sales"><span class="ac-kpi-l">5店合計 販売高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="sales">—</span><span class="ac-kpi-s">前週比 <span data-source="week_sum" data-field="sales_wow">—</span></span></div>
-      <div class="ac-kpi" id="kpi-gp"><span class="ac-kpi-l">5店合計 荒利益高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="gross_profit">—</span><span class="ac-kpi-s">前週比 <span data-source="week_sum" data-field="gp_wow">—</span></span></div>
-      <div class="ac-kpi" id="kpi-gprate"><span class="ac-kpi-l">5店合計 荒利率（荒利益高÷販売高）</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="gp_rate">—</span><span class="ac-kpi-s">前週差 <span data-source="week_sum" data-field="gp_rate_diff">—</span></span></div>
-      <div class="ac-kpi" id="kpi-loss"><span class="ac-kpi-l">5店合計 ロス額（値引＋廃棄）</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="loss">—</span><span class="ac-kpi-s">ロス率 <span class="lr" data-source="week_sum" data-field="loss_rate">—</span>（前週差 <span class="lrd" data-source="week_sum" data-field="loss_rate_diff">—</span>）</span></div>
+      <div class="ac-kpi" id="kpi-sales"><span class="ac-kpi-l">5店合計 販売高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="sales">—</span><span class="ac-kpi-s">前週比 <span class="ac-delta" data-source="week_sum" data-field="sales_wow">—</span></span><div class="ac-spark" data-source="week_sum"></div></div>
+      <div class="ac-kpi" id="kpi-gp"><span class="ac-kpi-l">5店合計 荒利益高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="gross_profit">—</span><span class="ac-kpi-s">前週比 <span class="ac-delta" data-source="week_sum" data-field="gp_wow">—</span></span><div class="ac-spark" data-source="week_sum"></div></div>
+      <div class="ac-kpi" id="kpi-gprate"><span class="ac-kpi-l">5店合計 荒利率（荒利益高÷販売高）</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="gp_rate">—</span><span class="ac-kpi-s">前週差 <span class="ac-delta" data-source="week_sum" data-field="gp_rate_diff">—</span></span><div class="ac-spark" data-source="week_sum"></div></div>
+      <div class="ac-kpi" id="kpi-loss"><span class="ac-kpi-l">5店合計 ロス額（値引＋廃棄）</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="loss">—</span><span class="ac-kpi-s">ロス率 <span class="lr" data-source="week_sum" data-field="loss_rate">—</span> 前週差 <span class="lrd ac-delta" data-source="week_sum" data-field="loss_rate_diff">—</span></span><div class="ac-spark" data-source="week_sum"></div></div>
     </div>
 
     <div class="ac-card" id="scorecard">
@@ -347,7 +375,7 @@
     <div class="ac-card" id="findings">
       <h2>所見</h2>
       
-      <!-- 所見は社内データに基づくため、公開リポジトリには入れていません。ダッシュボード本体で管理します。 -->
+      <!-- 所見は社内データに基づくため、公開リポジトリには入れていません。 -->
       <p class="ac-note">（所見はダッシュボード本体にのみ記載）</p>
     </div>
 
@@ -504,6 +532,22 @@ function makeTip(box) {
   };
 }
 
+/* ---------- sparkline (KPI tiles) ---------- */
+function sparkline(box, rows, field, fmt) {
+  box.replaceChildren();
+  if (rows.length < 2) return;
+  const W = Math.max(120, box.clientWidth), H = 36, p = 4;
+  const x = d3.scalePoint(rows.map((r) => r.week_start), [p, W - p]);
+  const ext = d3.extent(rows, (r) => r[field]);
+  const y = d3.scaleLinear(ext[0] === ext[1] ? [ext[0] - 1, ext[1] + 1] : ext, [H - p, p]);
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('aria-hidden', 'true');
+  svg.append('path').attr('d', d3.line().x((r) => x(r.week_start)).y((r) => y(r[field]))(rows)).style('fill', 'none').style('stroke', 'var(--cds-chart-muted)').attr('stroke-width', 1.5).attr('stroke-linejoin', 'round').attr('stroke-linecap', 'round');
+  rows.forEach((r) => {
+    const on = r.week_start === state.week;
+    svg.append('circle').attr('cx', x(r.week_start)).attr('cy', y(r[field])).attr('r', on ? 3.5 : 2).style('fill', on ? 'var(--color-fg)' : 'var(--cds-chart-muted)');
+  });
+}
+
 /* ---------- line chart (weeks or months on x) ---------- */
 function lineChart(box, cfg) {
   // cfg: {xs:[keys], xLabel:fn, series:[{name,color,dash,values:Map}], ref:100, fmt}
@@ -630,15 +674,17 @@ function drawOverview() {
   document.querySelectorAll('#overview [data-source="week_sum"]').forEach((n) => { n.dataset.where = where; });
   if (w) {
     const set = (sel, text, cls) => { const n = document.querySelector(sel); n.textContent = text; n.classList.remove('dash-skeleton', 'ac-neg', 'ac-pos'); if (cls) n.classList.add(cls); };
+    const arrow = (v, base) => (v == null ? '' : v > base ? '▲ ' : v < base ? '▼ ' : '');
     set('#kpi-sales .ac-kpi-v', fInt(w.sales));
-    set('#kpi-sales .ac-kpi-s span', w.sales_wow == null ? '—' : fRatio(w.sales_wow), w.sales_wow != null && w.sales_wow < 1 ? 'ac-neg' : '');
+    set('#kpi-sales .ac-delta', w.sales_wow == null ? '—' : arrow(w.sales_wow, 1) + fRatio(w.sales_wow), w.sales_wow == null ? '' : w.sales_wow < 1 ? 'ac-neg' : 'ac-pos');
     set('#kpi-gp .ac-kpi-v', fInt(w.gross_profit));
-    set('#kpi-gp .ac-kpi-s span', w.gp_wow == null ? '—' : fRatio(w.gp_wow), w.gp_wow != null && w.gp_wow < 1 ? 'ac-neg' : '');
+    set('#kpi-gp .ac-delta', w.gp_wow == null ? '—' : arrow(w.gp_wow, 1) + fRatio(w.gp_wow), w.gp_wow == null ? '' : w.gp_wow < 1 ? 'ac-neg' : 'ac-pos');
     set('#kpi-gprate .ac-kpi-v', fRate(w.gp_rate));
-    set('#kpi-gprate .ac-kpi-s span', w.gp_rate_diff == null ? '—' : fPt(w.gp_rate_diff), w.gp_rate_diff == null ? '' : w.gp_rate_diff < 0 ? 'ac-neg' : 'ac-pos');
+    set('#kpi-gprate .ac-delta', w.gp_rate_diff == null ? '—' : arrow(w.gp_rate_diff, 0) + fPt(w.gp_rate_diff), w.gp_rate_diff == null ? '' : w.gp_rate_diff < 0 ? 'ac-neg' : 'ac-pos');
     set('#kpi-loss .ac-kpi-v', fInt(w.loss));
     set('#kpi-loss .lr', fRate(w.loss_rate));
-    set('#kpi-loss .lrd', w.loss_rate_diff == null ? '—' : fPt(w.loss_rate_diff), w.loss_rate_diff == null ? '' : w.loss_rate_diff > 0 ? 'ac-neg' : 'ac-pos');
+    set('#kpi-loss .lrd', w.loss_rate_diff == null ? '—' : arrow(w.loss_rate_diff, 0) + fPt(w.loss_rate_diff), w.loss_rate_diff == null ? '' : w.loss_rate_diff > 0 ? 'ac-neg' : 'ac-pos');
+    [['kpi-sales', 'sales', fInt], ['kpi-gp', 'gross_profit', fInt], ['kpi-gprate', 'gp_rate', fRate], ['kpi-loss', 'loss', fInt]].forEach(([id, f, fmt]) => sparkline(document.querySelector(`#${id} .ac-spark`), ws, f, fmt));
   }
   // scorecard
   const tb = document.querySelector('#score-table tbody');
@@ -646,11 +692,12 @@ function drawOverview() {
     const wt = dash.data('weekly_total').data, rates = new Map(dash.data('store_week').data.map((r) => [r.key, r]));
     const colors = dash.colors, order = storeOrder(wt);
     const rows = wt.filter((r) => r.week_start === state.week).sort((a, b) => rates.get(b.key).gp_rate - rates.get(a.key).gp_rate);
-    tb.replaceChildren(...rows.map((r) => {
+    const gpMax = d3.max(rows, (r) => rates.get(r.key).gp_rate) || 1;
+    tb.replaceChildren(...rows.map((r, ri) => {
       const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
-      const c0 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = colors[order.indexOf(r.store) % colors.length]; c0.append(dot, document.createTextNode(r.store)); c0.title = fullName(r.store);
+      const c0 = document.createElement('td'); const rk = document.createElement('span'); rk.className = 'ac-rank'; rk.textContent = String(ri + 1); rk.setAttribute('aria-label', `${ri + 1}位`); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = colors[order.indexOf(r.store) % colors.length]; c0.append(rk, dot, document.createTextNode(r.store)); c0.title = fullName(r.store);
       tr.append(c0, td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
-        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)), td(fYoy(r.discount_sku_match), 'ac-hide-sm'));
+        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), (() => { const c = td(fRate(q.gp_rate)); c.style.fontWeight = '600'; const bar = document.createElement('span'); bar.className = 'ac-inbar ac-hide-sm'; bar.style.width = `${Math.max(4, (q.gp_rate / gpMax) * 48)}px`; c.append(bar); return c; })(), td(fYoy(r.discount_sku_match), 'ac-hide-sm'));
       return tr;
     }));
   } else tb.replaceChildren();
@@ -986,6 +1033,7 @@ function draw() {
   if (state.page === 'store') drawStore();
   if (state.page === 'month') drawMonth();
 }
+
 
 dash.onData(draw);
 
