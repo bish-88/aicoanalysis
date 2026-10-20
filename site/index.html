@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
 <title>AI.CO 週次検証</title>
-<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-<script src="data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js" integrity="sha384-CjloA8y00+1SDAUkjs099PVfnY2KmDC2BZnws9kh8D/lX1s46w6EPhpXdqMfjK6i" crossorigin="anonymous"></script>
+<script src="data.enc.js"></script>
 <style>
 :root{--color-bg:#f7f7f5;--color-panel:#ffffff;--color-fg:#1f2328;--color-fg-muted:#656d76;--color-border-line:#e3e3df;--color-ok:#1a7f37;--color-bad:#cf222e;
 --cds-chart-grid:#ececea;--cds-chart-axis:#9aa0a6;--cds-chart-muted:#b4b8bd;--cds-chart-reference:#8c9196;--cds-border:#d8d8d4;--cds-surface-popover:#ffffff;--cds-text-secondary:#656d76;
@@ -23,14 +25,18 @@ body{padding:24px 16px 48px}
 </head>
 <body>
 <script>
-/* GitHub Pages 用：ダッシュボード本体の dash の代わりに、data.js のデータを読む小さな実装 */
+/* GitHub Pages 用：ダッシュボード本体の dash の代わりに、パスワードで復号したデータを読む小さな実装 */
 (() => {
-  const raw = window.AICO_DATA || {};
+  let raw = {};
   const calcs = {}, memo = {}, subs = [];
   const get = (id) => {
     if (id in memo) return memo[id];
     if (id in raw) return (memo[id] = raw[id]);
-    if (id in calcs) { const c = calcs[id]; return (memo[id] = c.fn(...c.inputs.map(get))); }
+    if (id in calcs) {
+      const c = calcs[id], args = c.inputs.map(get);
+      if (args.some((a) => a === undefined)) return undefined; // 復号前は「まだない」扱いにする
+      return (memo[id] = c.fn(...args));
+    }
     return undefined;
   };
   window.dash = {
@@ -41,8 +47,11 @@ body{padding:24px 16px 48px}
     onData: (fn) => { subs.push(fn); fn(); },
     setLink: (n) => { try { history.replaceState(null, '', '#' + n); } catch (e) {} },
     params: () => ({}), setParams: () => {}, resetParams: () => {}, refresh: () => {},
+    load: (obj) => { raw = obj || {}; Object.keys(memo).forEach((k) => delete memo[k]); subs.forEach((f) => f()); },
   };
-  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(() => subs.forEach((f) => f()), 150); });
+  // 幅が変わったときだけ描き直す（スマホのスクロールでアドレスバーが伸び縮みしても描き直さない）
+  let t, lastW = window.innerWidth;
+  window.addEventListener('resize', () => { if (window.innerWidth === lastW) return; lastW = window.innerWidth; clearTimeout(t); t = setTimeout(() => subs.forEach((f) => f()), 150); });
 })();
 </script>
 <style>
@@ -158,48 +167,78 @@ body{padding:24px 16px 48px}
 .ac-lock input:focus-visible{outline:2px solid var(--color-fg);outline-offset:1px}
 .ac-lock button{font:inherit;font-weight:600;color:var(--color-bg);background:var(--color-fg);border:0;border-radius:var(--cds-radius);padding:var(--cds-pad-sm) var(--cds-pad-lg);cursor:pointer}
 .ac-lock-err{margin:0;min-height:1.2em;font-size:var(--cds-font-size-caption);color:var(--color-bad)}
-@media (max-width:640px){.ac-hide-sm{display:none}}
+.ac-sub{margin:0;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);line-height:1.6}
+.ac-title:focus{outline:none}
+.ac-lock-l{font-size:var(--cds-font-size-caption);color:var(--color-fg-muted);margin-bottom:calc(-1 * var(--cds-gap-sm))}
+.ac-lock button:disabled,.ac-lock input:disabled{opacity:.6;cursor:progress}
+.ac-lock button:focus-visible{outline:2px solid var(--color-fg);outline-offset:2px}
+.ac-ctl select:focus-visible,.ac-range input:focus-visible,.ac-details summary:focus-visible{outline:2px solid var(--color-fg);outline-offset:2px;border-radius:4px}
+/* タブ：PCではスクロールしても上に残す。背景は不透明にして下の内容が透けないようにする */
+.ac-tabs{position:sticky;top:0;z-index:10;background:color-mix(in srgb, var(--color-fg) 4%, var(--color-bg))}
+.ac-tab{min-height:36px}
+.ac-chip{min-height:36px;display:inline-flex;align-items:center}
+.ac-chip:hover{border-color:var(--color-fg-muted)}
+/* 指で操作する端末では、押せる部品を40px以上にする */
+@media (pointer:coarse){.ac-tab,.ac-chip,.ac-btn,.ac-ctl select{min-height:40px}.ac-th-btn{min-height:32px}}
+@media (max-width:640px){
+  .ac-hide-sm{display:none}
+  body{padding:16px 12px 40px}
+  .ac{gap:var(--cds-gap-lg)}
+  .ac-title{font-size:22px}
+  /* 7つのタブを横スクロールで隠さず、折り返して全部見せる */
+  .ac-tabs{position:static;flex-wrap:wrap;overflow:visible}
+  .ac-tab{flex:1 1 calc(33% - 4px);padding-inline:var(--cds-pad-sm)}
+  .ac-ctl{width:100%}.ac-ctl select{width:100%}
+  /* KPIは2列にして、縦に長くなりすぎないようにする */
+  .ac-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--cds-gap-sm)}
+  .ac-kpi{padding:var(--cds-pad-md)}
+  .ac-kpi-v{font-size:22px}
+  .ac-card{padding:var(--cds-pad-md)}
+  .ac-big{font-size:20px}
+}
 </style>
 
-<div class="ac-lock" id="lock">
+<form class="ac-lock" id="lock" autocomplete="off">
   <h1>AI.CO 週次検証</h1>
-  <p class="ac-note">パスワードを入力してください。</p>
+  <p class="ac-note">吹田エリア5店舗の AI.CO カテゴリの週次結果です。社内向けのため、パスワードを入力してください。</p>
+  <label class="ac-lock-l" for="lock-pw">パスワード</label>
   <div class="ac-lock-row">
-    <input id="lock-pw" type="password" inputmode="numeric" autocomplete="off" aria-label="パスワード">
-    <button type="button" id="lock-go">開く</button>
+    <input id="lock-pw" type="password" inputmode="numeric" autocomplete="current-password" aria-describedby="lock-err" required>
+    <button type="submit" id="lock-go">開く</button>
   </div>
-  <p class="ac-lock-err" id="lock-err" role="alert"></p>
-</div>
+  <p class="ac-lock-err" id="lock-err" role="alert" aria-live="assertive"></p>
+</form>
 
-<div class="ac" id="ac-main" hidden>
+<main class="ac" id="ac-main" hidden>
   <div class="ac-top">
     <header class="ac-head">
       <div class="ac-head-text">
         <div class="ac-eyebrow">AI.COカテゴリ ／ 吹田エリア5店舗 ／ お店づくりレポート②</div>
-        <h1 class="ac-title" id="title">AI.CO 週次検証</h1>
+        <h1 class="ac-title" id="title" tabindex="-1">AI.CO 週次検証</h1>
+        <p class="ac-sub" id="coverage">5店舗の週次レポートを週ごとに積み上げて、販売・値引・廃棄・荒利益を比べます。</p>
       </div>
-      <label class="ac-ctl" for="week-pick">表示する週
-        <select id="week-pick" aria-label="表示する週"></select>
+      <label class="ac-ctl" for="week-pick" id="week-ctl">表示する週
+        <select id="week-pick"></select>
       </label>
     </header>
-    <div class="ac-take-box">
+    <div class="ac-take-box" id="take-box">
       <span class="ac-take-l">この週のポイント</span>
       <p class="ac-take" id="takeaway"><span class="dash-skeleton">—</span></p>
     </div>
   </div>
 
   <div class="ac-tabs" role="tablist" aria-label="ページ">
-    <button class="ac-tab" role="tab" id="tab-overview" data-page="overview" aria-selected="true">5店舗サマリー</button>
-    <button class="ac-tab" role="tab" id="tab-compare" data-page="compare" aria-selected="false">週別の比較</button>
-    <button class="ac-tab" role="tab" id="tab-sim" data-page="sim" aria-selected="false">改善シミュレーション</button>
-    <button class="ac-tab" role="tab" id="tab-support" data-page="support" aria-selected="false">本部支援</button>
-    <button class="ac-tab" role="tab" id="tab-store" data-page="store" aria-selected="false">店舗別</button>
-    <button class="ac-tab" role="tab" id="tab-month" data-page="month" aria-selected="false">月次</button>
-    <button class="ac-tab" role="tab" id="tab-notes" data-page="notes" aria-selected="false">見方と所見</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-overview" data-page="overview" aria-controls="overview" aria-selected="true" tabindex="0">5店舗サマリー</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-compare" data-page="compare" aria-controls="compare" aria-selected="false" tabindex="-1">週別の比較</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-sim" data-page="sim" aria-controls="sim" aria-selected="false" tabindex="-1">改善シミュレーション</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-support" data-page="support" aria-controls="support" aria-selected="false" tabindex="-1">本部支援</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-store" data-page="store" aria-controls="store" aria-selected="false" tabindex="-1">店舗別</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-month" data-page="month" aria-controls="month" aria-selected="false" tabindex="-1">月次</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-notes" data-page="notes" aria-controls="notes" aria-selected="false" tabindex="-1">見方と所見</button>
   </div>
 
   <!-- 5店舗サマリー -->
-  <section class="ac-page" id="overview">
+  <section class="ac-page" id="overview" role="tabpanel" aria-labelledby="tab-overview">
     <div class="ac-kpis">
       <div class="ac-kpi" id="kpi-sales"><span class="ac-kpi-l">5店合計 販売高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="sales">—</span><span class="ac-kpi-s">前週比 <span class="ac-delta" data-source="week_sum" data-field="sales_wow">—</span></span><div class="ac-spark" data-source="week_sum"></div></div>
       <div class="ac-kpi" id="kpi-gp"><span class="ac-kpi-l">5店合計 荒利益高</span><span class="ac-kpi-v dash-skeleton" data-source="week_sum" data-field="gross_profit">—</span><span class="ac-kpi-s">前週比 <span class="ac-delta" data-source="week_sum" data-field="gp_wow">—</span></span><div class="ac-spark" data-source="week_sum"></div></div>
@@ -247,7 +286,7 @@ body{padding:24px 16px 48px}
   </section>
 
   <!-- 週別の比較 -->
-  <section class="ac-page" id="compare" hidden>
+  <section class="ac-page" id="compare" role="tabpanel" aria-labelledby="tab-compare" hidden>
     <p class="ac-note">値引・廃棄・荒利益高を、5店舗×週で別々に並べています。表の上段が金額、下段が販売高に対する率です。各週で最も悪い店を赤、最も良い店を緑の背景にしています。</p>
     <div class="ac-legend" aria-label="凡例"><span><span class="ac-sw" style="background:color-mix(in srgb, var(--color-bad) 12%, transparent)"></span>その週で最も悪い店</span><span><span class="ac-sw" style="background:color-mix(in srgb, var(--color-ok) 12%, transparent)"></span>その週で最も良い店</span></div>
     <div class="ac-card" id="cmp-discount">
@@ -271,7 +310,7 @@ body{padding:24px 16px 48px}
   </section>
 
   <!-- 改善シミュレーション -->
-  <section class="ac-page" id="sim" hidden>
+  <section class="ac-page" id="sim" role="tabpanel" aria-labelledby="tab-sim" hidden>
     <div class="ac-card ac-hero" id="sim-hero">
       <p class="ac-big" id="sim-head">値引・廃棄を <b>100円</b> 減らすと、荒利益高は <b id="sim-k">約65円</b> 増えます。</p>
       <p class="ac-note">売上が同じ場合。5店舗の毎週のデータから計算しています（くわしくは一番下）。</p>
@@ -295,7 +334,7 @@ body{padding:24px 16px 48px}
           <tbody></tbody>
         </table>
       </div>
-      <p class="ac-note">金額は9月の月計（1日あたり）をもとにしています。</p>
+      <p class="ac-note" id="sim-basis">金額は最新の月計（1日あたり）をもとにしています。</p>
     </div>
 
     <div class="ac-card" id="sim-cats">
@@ -322,7 +361,7 @@ body{padding:24px 16px 48px}
   </section>
 
   <!-- 本部支援 -->
-  <section class="ac-page" id="support" hidden>
+  <section class="ac-page" id="support" role="tabpanel" aria-labelledby="tab-support" hidden>
     <div class="ac-card ac-hero" id="sup-hero">
       <p class="ac-big" id="sup-head"><span class="dash-skeleton">—</span></p>
       <p class="ac-note" id="sup-sub">世界一成長する店舗づくり大作戦 検証レポート（7日間確定値）より。金額は1日平均×日数で求めた期間合計です。</p>
@@ -336,7 +375,7 @@ body{padding:24px 16px 48px}
     </div>
 
     <div class="ac-card" id="sup-table-card">
-      <h2>店舗ごと：ロスと支援（9/15〜10/12、28日）</h2>
+      <h2 id="sup-table-title">店舗ごと：ロスと支援</h2>
       <p class="ac-note">カバー率 ＝ 支援額（売価）÷ ロス額。支援後の前年比が100%未満は赤（荒利）、100%超は赤（ロス）。</p>
       <div class="ac-scroll">
         <table class="ac-table" id="sup-table" data-source="support_period" data-row-key="key">
@@ -381,7 +420,7 @@ body{padding:24px 16px 48px}
   </section>
 
   <!-- 店舗別 -->
-  <section class="ac-page" id="store" hidden>
+  <section class="ac-page" id="store" role="tabpanel" aria-labelledby="tab-store" hidden>
     <div class="ac-chips" id="store-chips" role="group" aria-label="店舗"></div>
 
     <div class="ac-card" id="store-weeks">
@@ -438,7 +477,7 @@ body{padding:24px 16px 48px}
   </section>
 
   <!-- 月次 -->
-  <section class="ac-page" id="month" hidden>
+  <section class="ac-page" id="month" role="tabpanel" aria-labelledby="tab-month" hidden>
     <div class="ac-card" id="month-table-card">
       <h2>月計（週次レポートの当月欄）</h2>
       <p class="ac-note">最終週のレポートにある「当月」欄の値です。前年比が100%未満の数字は赤です。</p>
@@ -473,7 +512,7 @@ body{padding:24px 16px 48px}
   </section>
 
   <!-- 見方と所見 -->
-  <section class="ac-page" id="notes" hidden>
+  <section class="ac-page" id="notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
     <div class="ac-card" id="defs">
       <h2>指標の見方</h2>
       <dl class="ac-dl">
@@ -512,7 +551,7 @@ body{padding:24px 16px 48px}
       </dl>
     </div>
   </section>
-</div>
+</main>
 
 <script>
 /* ---------- calculations ---------- */
@@ -618,9 +657,14 @@ dash.calc('cat_opportunity', {
 const fInt = d3.format(',');
 const fRate = d3.format('.1%');
 const fSell = (v) => (v == null ? '—' : d3.format('.0%')(v));
-const fPt = (v) => (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v * 100).toFixed(1) + 'pt';
+// 0.05pt 未満は「±0.0pt」（四捨五入で 0.0 になるのに ▲ や色が付かないようにする）
+const isZeroPt = (v) => Math.abs(v * 100) < 0.05;
+const fPt = (v) => (isZeroPt(v) ? '±' : v > 0 ? '+' : '−') + Math.abs(v * 100).toFixed(1) + 'pt';
 const fYoy = (v) => (v == null || v === '' ? '—' : (Number.isInteger(Number(v)) ? Number(v) : Number(v).toFixed(1)) + '%');
+const fYoy1 = (v) => (v == null || v === '' ? '—' : Number(v).toFixed(1) + '%');
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
 const fRatio = (v) => (v == null ? '—' : (v * 100).toFixed(1) + '%');
+const wkShort = (s) => { const a = s.split('-'); return `${+a[1]}/${+a[2]}`; };
 const wkLabel = (s, e) => { const a = s.split('-'), b = (e || '').split('-'); return `${+a[1]}/${+a[2]}〜${b.length > 2 ? `${+b[1]}/${+b[2]}` : ''}`; };
 const fullName = (s) => { const d = dash.data('weekly_total'); const r = d.status === 'ok' ? d.data.find((x) => x.store === s) : null; return (r && r.store_name) || s; };
 const state = { page: 'overview', week: null, store: null, catPeriod: null, catSort: { k: 'sales', d: -1 }, metric: 'gp_yoy' };
@@ -628,7 +672,7 @@ const el = (id) => document.getElementById(id);
 const td = (text, cls) => { const c = document.createElement('td'); c.textContent = text; if (cls) c.className = cls; return c; };
 const yoyCls = (v) => (v != null && v !== '' && Number(v) < 100 ? 'ac-neg' : '');
 const ok = (...ids) => ids.every((i) => dash.data(i).status === 'ok');
-const failLine = (box) => { box.replaceChildren(); const d = document.createElement('div'); d.className = 'ac-fail'; d.textContent = 'Failed to load'; box.append(d); };
+const failLine = (box) => { box.replaceChildren(); const d = document.createElement('div'); d.className = 'ac-fail'; d.textContent = 'データを読み込めませんでした'; box.append(d); };
 const anyErr = (...ids) => ids.some((i) => dash.data(i).status === 'error');
 const storeOrder = (rows) => [...new Set(rows.map((r) => r.store))];
 const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -673,6 +717,17 @@ function sparkline(box, rows, field, fmt) {
 }
 
 /* ---------- line chart (weeks or months on x) ---------- */
+function maxTextW(svg, labels) {
+  const t = svg.append('text').attr('font-size', 12).style('font-family', 'var(--font-anthropic-sans)');
+  let w = 0; labels.forEach((l) => { t.text(l); w = Math.max(w, t.node().getComputedTextLength()); });
+  t.remove(); return w;
+}
+function fitsAll(svg, labels, step) { return maxTextW(svg, labels) + 10 <= step; }
+// タップでもツールチップを出す（マウスは離れたら消す、タッチは次にタップするまで残す）
+function hoverOn(sel, show, hide) {
+  sel.on('pointermove', (ev) => show(ev)).on('pointerdown', (ev) => show(ev))
+    .on('pointerleave', (ev) => { if (ev.pointerType === 'mouse') hide(); });
+}
 function lineChart(box, cfg) {
   // cfg: {xs:[keys], xLabel:fn, series:[{name,color,dash,values:Map}], ref:100, fmt}
   box.replaceChildren();
@@ -694,7 +749,11 @@ function lineChart(box, cfg) {
   const g = svg.append('g');
   g.selectAll('line.grid').data(y.ticks(5)).join('line').attr('x1', m.l).attr('x2', W - m.r + 6).attr('y1', y).attr('y2', y).style('stroke', 'var(--cds-chart-grid)');
   g.selectAll('text.yt').data(y.ticks(5)).join('text').attr('x', m.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(cfg.fmt);
-  g.selectAll('text.xt').data(cfg.xs).join('text').attr('x', (d) => x(d)).attr('y', H - 8).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(cfg.xLabel);
+  // x軸ラベル：入りきらないときは短い表記（開始日だけ）にし、それでも重なるときは間引く（最新は必ず出す）
+  const axisLabel = cfg.xShort && fitsAll(svg, cfg.xs.map(cfg.xLabel), x.step()) === false ? cfg.xShort : cfg.xLabel;
+  const every = Math.max(1, Math.ceil((maxTextW(svg, cfg.xs.map(axisLabel)) + 10) / Math.max(1, x.step())));
+  const shown = cfg.xs.filter((d, i) => (cfg.xs.length - 1 - i) % every === 0);
+  g.selectAll('text.xt').data(shown).join('text').attr('x', (d) => x(d)).attr('y', H - 8).attr('text-anchor', (d) => (cfg.xs.length > 1 && d === cfg.xs[0] && x.step() < 60 ? 'start' : 'middle')).attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(axisLabel);
   if (cfg.ref != null) g.append('line').attr('x1', m.l).attr('x2', W - m.r + 6).attr('y1', y(cfg.ref)).attr('y2', y(cfg.ref)).style('stroke', 'var(--cds-chart-reference)').attr('stroke-dasharray', '4 4');
   const ln = d3.line().defined((d) => d[1] != null).x((d) => x(d[0])).y((d) => y(d[1]));
   cfg.series.forEach((s) => {
@@ -712,48 +771,60 @@ function lineChart(box, cfg) {
   const tip = makeTip(box);
   const rule = g.append('line').attr('y1', m.t).attr('y2', H - m.b).style('stroke', 'var(--cds-chart-axis)').attr('opacity', 0);
   svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', Math.max(0, W - m.r - m.l)).attr('height', H - m.t - m.b).attr('fill', 'transparent')
-    .on('mousemove', (ev) => {
+    .call(hoverOn, (ev) => {
       const [px] = d3.pointer(ev);
       const k = cfg.xs.reduce((a, b) => (Math.abs(x(b) - px) < Math.abs(x(a) - px) ? b : a));
       rule.attr('x1', x(k)).attr('x2', x(k)).attr('opacity', 1);
       const scale = box.clientWidth / W;
       tip.show(x(k) * scale, m.t * scale + 40, cfg.xLabel(k), cfg.series.map((s) => [s.color, s.name, cfg.fmt(s.values.get(k))]));
-    })
-    .on('mouseleave', () => { rule.attr('opacity', 0); tip.hide(); });
+    }, () => { rule.attr('opacity', 0); tip.hide(); });
 }
 
 /* ---------- scatter ---------- */
 function scatter(box, pts) {
   box.replaceChildren();
-  const W = Math.max(280, box.clientWidth), H = 300, m = { l: 52, r: 24, t: 14, b: 42 };
+  const W = Math.max(280, box.clientWidth), H = 300, m = { l: 52, r: 24, t: 14, b: 48 };
   const xs = pts.map((p) => p.x), ys = pts.map((p) => p.y);
   const x = d3.scaleLinear([d3.min(xs) - 0.01, d3.max(xs) + 0.01], [m.l, W - m.r]).nice();
   const y = d3.scaleLinear([d3.min(ys) - 0.01, d3.max(ys) + 0.01], [H - m.b, m.t]).nice();
   const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
   svg.selectAll('line.gy').data(y.ticks(5)).join('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y).attr('y2', y).style('stroke', 'var(--cds-chart-grid)');
   svg.selectAll('text.ty').data(y.ticks(5)).join('text').attr('x', m.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
-  svg.selectAll('text.tx').data(x.ticks(5)).join('text').attr('x', x).attr('y', H - m.b + 16).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
+  svg.selectAll('text.tx').data(x.ticks(5)).join('text').attr('x', x).attr('y', H - m.b + 20).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
   svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('ロス率（値引＋廃棄）÷販売高');
   svg.append('text').attr('transform', `translate(12,${(m.t + H - m.b) / 2}) rotate(-90)`).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('荒利率');
   const tip = makeTip(box);
   pts.forEach((p) => {
     svg.append('circle').attr('cx', x(p.x)).attr('cy', y(p.y)).attr('r', 7).style('fill', p.color)
-      .on('mousemove', () => { const s = box.clientWidth / W; tip.show(x(p.x) * s, y(p.y) * s, p.name, [[null, 'ロス率', fRate(p.x)], [null, '荒利率', fRate(p.y)]]); })
-      .on('mouseleave', () => tip.hide());
+      .call(hoverOn, () => { const s = box.clientWidth / W; tip.show(x(p.x) * s, y(p.y) * s, p.name, [[null, 'ロス率', fRate(p.x)], [null, '荒利率', fRate(p.y)]]); }, () => tip.hide());
     const right = x(p.x) < W - m.r - 70;
     svg.append('text').attr('x', x(p.x) + (right ? 11 : -11)).attr('y', y(p.y) + 4).attr('text-anchor', right ? 'start' : 'end').attr('font-size', 12).style('fill', 'var(--color-fg)').text(p.name);
   });
 }
 
 /* ---------- pages ---------- */
+// 「表示する週」と「この週のポイント」が効くタブ。ほかのタブでは隠して、選んでも変わらないものを見せない。
+const WEEK_PAGES = ['overview', 'store'];
 function setPage(p) {
   state.page = p;
-  document.querySelectorAll('.ac-tab').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.page === p)));
+  document.querySelectorAll('.ac-tab').forEach((b) => { const on = b.dataset.page === p; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
   document.querySelectorAll('.ac-page').forEach((s) => { s.hidden = s.id !== p; });
+  el('week-ctl').hidden = !WEEK_PAGES.includes(p);
+  el('take-box').hidden = p !== 'overview';
   dash.setLink(p);
   draw();
 }
-document.querySelectorAll('.ac-tab').forEach((b) => b.addEventListener('click', () => setPage(b.dataset.page)));
+const tabs = [...document.querySelectorAll('.ac-tab')];
+tabs.forEach((b, i) => {
+  b.addEventListener('click', () => { setPage(b.dataset.page); b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
+  b.addEventListener('keydown', (e) => {
+    const j = e.key === 'ArrowRight' ? i + 1 : e.key === 'ArrowLeft' ? i - 1 : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : null;
+    if (j == null) return;
+    e.preventDefault();
+    const n = tabs[(j + tabs.length) % tabs.length]; setPage(n.dataset.page); n.focus();
+  });
+});
+window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h !== state.page && tabs.some((b) => b.dataset.page === h)) setPage(h); });
 el('week-pick').addEventListener('change', (e) => { state.week = e.target.value; state.catPeriod = null; draw(); });
 
 function weeksSorted() {
@@ -768,6 +839,7 @@ function drawHeader() {
   pick.replaceChildren(...ws.slice().reverse().map((w) => new Option(`${wkLabel(w.week_start, w.week_end)}${w === ws[ws.length - 1] ? '（最新）' : ''}`, w.week_start)));
   pick.value = state.week;
   if (ok('weekly_total')) el('stores-covered').textContent = storeOrder(dash.data('weekly_total').data).map(fullName).join('・');
+  el('coverage').textContent = `収録：${wkLabel(ws[0].week_start, ws[0].week_end)} 〜 ${wkLabel(ws[ws.length - 1].week_start, ws[ws.length - 1].week_end)} の${ws.length}週（金額は1店1日あたり）。前年比が100%未満の数字は赤です。`;
   el('weeks-covered').textContent = `${wkLabel(ws[0].week_start, ws[0].week_end)} から ${wkLabel(ws[ws.length - 1].week_start, ws[ws.length - 1].week_end)} までの${ws.length}週`;
 
   // takeaway
@@ -804,10 +876,10 @@ function drawOverview() {
     set('#kpi-gp .ac-kpi-v', fInt(w.gross_profit));
     set('#kpi-gp .ac-delta', w.gp_wow == null ? '—' : arrow(w.gp_wow, 1) + fRatio(w.gp_wow), w.gp_wow == null ? '' : w.gp_wow < 1 ? 'ac-neg' : 'ac-pos');
     set('#kpi-gprate .ac-kpi-v', fRate(w.gp_rate));
-    set('#kpi-gprate .ac-delta', w.gp_rate_diff == null ? '—' : arrow(w.gp_rate_diff, 0) + fPt(w.gp_rate_diff), w.gp_rate_diff == null ? '' : w.gp_rate_diff < 0 ? 'ac-neg' : 'ac-pos');
+    set('#kpi-gprate .ac-delta', w.gp_rate_diff == null ? '—' : (isZeroPt(w.gp_rate_diff) ? '' : arrow(w.gp_rate_diff, 0)) + fPt(w.gp_rate_diff), w.gp_rate_diff == null || isZeroPt(w.gp_rate_diff) ? '' : w.gp_rate_diff < 0 ? 'ac-neg' : 'ac-pos');
     set('#kpi-loss .ac-kpi-v', fInt(w.loss));
     set('#kpi-loss .lr', fRate(w.loss_rate));
-    set('#kpi-loss .lrd', w.loss_rate_diff == null ? '—' : arrow(w.loss_rate_diff, 0) + fPt(w.loss_rate_diff), w.loss_rate_diff == null ? '' : w.loss_rate_diff > 0 ? 'ac-neg' : 'ac-pos');
+    set('#kpi-loss .lrd', w.loss_rate_diff == null ? '—' : (isZeroPt(w.loss_rate_diff) ? '' : arrow(w.loss_rate_diff, 0)) + fPt(w.loss_rate_diff), w.loss_rate_diff == null || isZeroPt(w.loss_rate_diff) ? '' : w.loss_rate_diff > 0 ? 'ac-neg' : 'ac-pos');
     [['kpi-sales', 'sales', fInt], ['kpi-gp', 'gross_profit', fInt], ['kpi-gprate', 'gp_rate', fRate], ['kpi-loss', 'loss', fInt]].forEach(([id, f, fmt]) => sparkline(document.querySelector(`#${id} .ac-spark`), ws, f, fmt));
   }
   // scorecard
@@ -832,7 +904,7 @@ function drawOverview() {
     const wt = dash.data('weekly_total').data, order = storeOrder(wt), xs = [...new Set(wt.map((r) => r.week_start))].sort();
     const endOf = new Map(wt.map((r) => [r.week_start, r.week_end]));
     lineChart(box, {
-      xs, xLabel: (k) => wkLabel(k, endOf.get(k)), ref: 100, fmt: (v) => (v == null ? '—' : `${Math.round(v)}%`),
+      xs, xLabel: (k) => wkLabel(k, endOf.get(k)), xShort: wkShort, ref: 100, fmt: (v) => (v == null ? '—' : `${Math.round(v)}%`),
       series: order.map((s, i) => ({ name: s, color: dash.colors[i % dash.colors.length], values: new Map(wt.filter((r) => r.store === s).map((r) => [r.week_start, Number(r.gp_yoy)])) })),
     });
   }
@@ -860,14 +932,14 @@ function drawStore() {
   document.querySelector('#store-week-table tbody').replaceChildren(...mine.map((r) => {
     const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
     if (r.week_start === state.week) tr.style.fontWeight = '600';
-    tr.append(td(r.week_start), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fYoy(r.sales_wow)), td(fInt(r.discount)), td(fRate(q.discount_rate)),
+    tr.append(td(wkLabel(r.week_start, r.week_end)), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fYoy(r.sales_wow)), td(fInt(r.discount)), td(fRate(q.discount_rate)),
       td(fInt(r.waste)), td(fYoy(r.waste_yoy)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)), td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)));
     return tr;
   }));
   // yoy chart
   const endOf = new Map(wt.map((r) => [r.week_start, r.week_end]));
   lineChart(el('store-yoy'), {
-    xs: mine.map((r) => r.week_start), xLabel: (k) => wkLabel(k, endOf.get(k)), ref: 100, fmt: (v) => (v == null ? '—' : `${Math.round(v)}%`),
+    xs: mine.map((r) => r.week_start), xLabel: (k) => wkLabel(k, endOf.get(k)), xShort: wkShort, ref: 100, fmt: (v) => (v == null ? '—' : `${Math.round(v)}%`),
     series: [
       { name: '販売前年比', color: 'var(--cds-chart-muted)', values: new Map(mine.map((r) => [r.week_start, Number(r.sales_yoy)])) },
       { name: '荒利前年比', color: dash.colors[order.indexOf(state.store) % dash.colors.length], emph: true, values: new Map(mine.map((r) => [r.week_start, Number(r.gp_yoy)])) },
@@ -998,7 +1070,8 @@ function drawCompare() {
   const sums = new Map(dash.data('week_sum').data.map((r) => [r.week_start, r]));
   const order = storeOrder(wt), weeks = [...new Set(wt.map((r) => r.week_start))].sort();
   const endOf = new Map(wt.map((r) => [r.week_start, r.week_end]));
-  const get = (s, w) => wt.find((r) => r.store === s && r.week_start === w);
+  const idx = new Map(wt.map((r) => [r.store + '|' + r.week_start, r]));
+  const get = (s, w) => idx.get(s + '|' + w);
   const mark = (n, src, field, key) => { n.dataset.source = src; n.dataset.field = field; n.dataset.where = `key=${encodeURIComponent(key)}`; };
   CMP.forEach((c) => {
     const card = el(c.id);
@@ -1012,7 +1085,7 @@ function drawCompare() {
     const isRate = sel.endsWith('_rate'), isYoy = sel.endsWith('_yoy');
     const valOf = (r) => (isRate ? rates.get(r.key)[sel] : Number(r[sel]));
     lineChart(card.querySelector('.ac-chart'), {
-      xs: weeks, xLabel: (k) => wkLabel(k, endOf.get(k)), ref: isYoy ? 100 : null,
+      xs: weeks, xLabel: (k) => wkLabel(k, endOf.get(k)), xShort: wkShort, ref: isYoy ? 100 : null,
       fmt: (v) => (v == null ? '—' : isRate ? d3.format('.1%')(v) : isYoy ? `${Math.round(v)}%` : fInt(Math.round(v))),
       series: order.map((s, i) => ({ name: s, color: dash.colors[i % dash.colors.length], values: new Map(weeks.map((w) => { const r = get(s, w); return [w, r ? valOf(r) : null]; })) })),
     });
@@ -1074,13 +1147,13 @@ function drawCompare() {
 el('sim-ratio').addEventListener('input', () => drawSim());
 function fitChart(box, pts, m, order) {
   box.replaceChildren();
-  const W = Math.max(280, box.clientWidth), H = 300, mg = { l: 52, r: 24, t: 14, b: 42 };
+  const W = Math.max(280, box.clientWidth), H = 300, mg = { l: 52, r: 24, t: 14, b: 48 };
   const x = d3.scaleLinear([d3.min(pts, (p) => p.x) - 0.01, d3.max(pts, (p) => p.x) + 0.01], [mg.l, W - mg.r]).nice();
   const y = d3.scaleLinear([d3.min(pts, (p) => p.y) - 0.01, d3.max(pts, (p) => p.y) + 0.01], [H - mg.b, mg.t]).nice();
-  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img').attr('aria-label', 'グラフ：店週ごとのロス率と荒利率、回帰式の線');
   svg.selectAll(null).data(y.ticks(5)).join('line').attr('x1', mg.l).attr('x2', W - mg.r).attr('y1', y).attr('y2', y).style('stroke', 'var(--cds-chart-grid)');
   svg.selectAll(null).data(y.ticks(5)).join('text').attr('x', mg.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
-  svg.selectAll(null).data(x.ticks(6)).join('text').attr('x', x).attr('y', H - mg.b + 16).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
+  svg.selectAll(null).data(x.ticks(6)).join('text').attr('x', x).attr('y', H - mg.b + 20).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
   svg.append('text').attr('x', (mg.l + W - mg.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('ロス率（値引＋廃棄）÷販売高');
   svg.append('text').attr('transform', `translate(12,${(mg.t + H - mg.b) / 2}) rotate(-90)`).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('荒利率');
   // fitted line using the average loss coefficient
@@ -1089,8 +1162,7 @@ function fitChart(box, pts, m, order) {
   const tip = makeTip(box);
   pts.forEach((p) => {
     svg.append('circle').attr('cx', x(p.x)).attr('cy', y(p.y)).attr('r', 5.5).style('fill', dash.colors[order.indexOf(p.store) % dash.colors.length]).attr('opacity', 0.9)
-      .on('mousemove', () => { const s = box.clientWidth / W; tip.show(x(p.x) * s, y(p.y) * s, `${p.store} ${p.week}`, [[null, 'ロス率', fRate(p.x)], [null, '荒利率', fRate(p.y)]]); })
-      .on('mouseleave', () => tip.hide());
+      .call(hoverOn, () => { const s = box.clientWidth / W; tip.show(x(p.x) * s, y(p.y) * s, `${p.store} ${p.week}`, [[null, 'ロス率', fRate(p.x)], [null, '荒利率', fRate(p.y)]]); }, () => tip.hide());
   });
   const lg = svg.append('g').attr('transform', `translate(${W - mg.r - 8},${mg.t + 6})`);
   order.forEach((s, i) => {
@@ -1106,6 +1178,8 @@ function drawSim() {
   const kd = m.gain_per_discount_yen, kw = m.gain_per_waste_yen;
   el('sim-k').textContent = `約${Math.round(((kd + kw) / 2) * 100)}円`;
   const ratio = +el('sim-ratio').value / 100;
+  const mon = dash.data('opportunity').data[0]?.month;
+  if (mon) el('sim-basis').textContent = `金額は${+mon.split('-')[1]}月の月計（1日あたり）をもとにしています。`;
   el('sim-ratio-o').textContent = `${Math.round(ratio * 10)}割`;
   const gainOf = (d, w) => ratio * (d * kd + w * kw);
   // store table
@@ -1156,7 +1230,10 @@ function drawSupport() {
   const sp = dash.data('support_period').data, ours = sp.filter((r) => r.our_store);
   const L = d3.sum(ours, (r) => r.loss_28d), SB = d3.sum(ours, (r) => r.support_baika_28d), BB = d3.sum(ours, (r) => r.support_B);
   const yen = (v) => `${fInt(Math.round(v))}円`;
-  el('sup-head').replaceChildren('5店で28日間に出たロスは ', (() => { const s = document.createElement('b'); s.textContent = yen(L); return s; })(), '。そのうち本部支援で戻ったのは ', (() => { const s = document.createElement('b'); s.textContent = `${yen(SB)}（${fRate(SB / L)}）`; return s; })(), '。残りの7割はお店の負担です。');
+  el('sup-head').replaceChildren('5店で28日間に出たロスは ', (() => { const s = document.createElement('b'); s.textContent = yen(L); return s; })(), '。そのうち本部支援で戻ったのは ', (() => { const s = document.createElement('b'); s.textContent = `${yen(SB)}（${fRate(SB / L)}）`; return s; })(), `。残りの${fRate(1 - SB / L)}はお店の負担です。`);
+  const per = ours[0] && ours[0].period ? ours[0].period.split('〜') : null;
+  const days = per ? Math.round((new Date(per[1]) - new Date(per[0])) / 864e5) + 1 : 28;
+  el('sup-table-title').textContent = per ? `店舗ごと：ロスと支援（${wkLabel(per[0], per[1])}、${days}日）` : '店舗ごと：ロスと支援';
   el('sup-k1').textContent = yen(L); el('sup-k2').textContent = yen(SB); el('sup-k2s').textContent = `ロスの ${fRate(SB / L)}`; el('sup-k3').textContent = yen(BB); el('sup-k4').textContent = yen(L - SB);
   const order = ok('weekly_total') ? storeOrder(dash.data('weekly_total').data) : [];
   document.querySelector('#sup-table tbody').replaceChildren(...ours.slice().sort((a, b) => b.cover_rate - a.cover_rate).map((r) => {
@@ -1164,11 +1241,12 @@ function drawSupport() {
     const c0 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = dash.colors[Math.max(0, order.indexOf(r.store)) % dash.colors.length]; c0.append(dot, document.createTextNode(r.store));
     const verdict = r.gp_after_yoy < 100 && r.loss_after_yoy > 100 ? ['要改善：支援込みでも前年割れ', 'ac-neg'] : r.gp_after_yoy < 100 ? ['荒利が前年割れ', 'ac-neg'] : ['良好', 'ac-pos'];
     tr.append(c0, td(fInt(r.loss_28d)), td(fInt(r.support_baika_28d)), td(fRate(r.cover_rate)), td(fInt(r.support_B)), td(fRate(r.gp_rate)), td(fRate(r.gp_after_rate)),
-      td(fYoy(r.gp_after_yoy), r.gp_after_yoy < 100 ? 'ac-neg' : ''), td(fYoy(r.loss_after_yoy), r.loss_after_yoy > 100 ? 'ac-neg' : 'ac-pos'), td(verdict[0], verdict[1]));
+      td(fYoy1(r.gp_after_yoy), r.gp_after_yoy < 100 ? 'ac-neg' : ''), td(fYoy1(r.loss_after_yoy), r.loss_after_yoy > 100 ? 'ac-neg' : 'ac-pos'), td(verdict[0], verdict[1]));
     return tr;
   }));
   // weekly
-  const sw = dash.data('support_weekly').data, stores = [...new Set(sw.map((r) => r.store))];
+  const sw = dash.data('support_weekly').data, inSw = new Set(sw.map((r) => r.store));
+  const stores = [...order.filter((s) => inSw.has(s)), ...[...inSw].filter((s) => !order.includes(s))];
   if (!supState.store || !stores.includes(supState.store)) supState.store = stores[0];
   el('sup-stores').replaceChildren(...stores.map((s) => { const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = s; b.setAttribute('aria-pressed', String(s === supState.store)); b.addEventListener('click', () => { supState.store = s; draw(); }); return b; }));
   el('sup-week-title').textContent = `${supState.store}　週ごとのロスと支援`;
@@ -1187,11 +1265,11 @@ function drawSupport() {
     const g = svg.append('g');
     g.append('rect').attr('x', x(r.week_start)).attr('width', x.bandwidth()).attr('y', y(r.loss)).attr('height', y(0) - y(r.loss)).attr('rx', 3).style('fill', 'var(--cds-chart-muted)').attr('opacity', 0.55);
     g.append('rect').attr('x', x(r.week_start)).attr('width', x.bandwidth()).attr('y', y(r.support_baika)).attr('height', y(0) - y(r.support_baika)).attr('rx', 3).style('fill', col);
-    g.on('mousemove', () => { const s = box.clientWidth / W; tip.show((x(r.week_start) + x.bandwidth()) * s, y(r.loss) * s, `${+r.week_start.slice(5, 7)}/${+r.week_start.slice(8)}週`, [[null, 'ロス', fInt(r.loss)], [col, '支援', fInt(r.support_baika)], [null, 'カバー率', r.loss ? fRate(r.support_baika / r.loss) : '—']]); }).on('mouseleave', () => tip.hide());
+    g.call(hoverOn, () => { const s = box.clientWidth / W; tip.show((x(r.week_start) + x.bandwidth()) * s, y(r.loss) * s, `${wkLabel(r.week_start, addDays(r.week_start, 6))}`, [[null, 'ロス', fInt(r.loss)], [col, '支援', fInt(r.support_baika)], [null, 'カバー率', r.loss ? fRate(r.support_baika / r.loss) : '—']]); }, () => tip.hide());
   });
   document.querySelector('#sup-week-table tbody').replaceChildren(...mine.slice().reverse().map((r) => {
     const tr = document.createElement('tr'); tr.dataset.key = r.key;
-    tr.append(td(r.week_start), td(fInt(r.sales)), td(fInt(r.loss)), td(fInt(r.support_baika)), td(r.loss ? fRate(r.support_baika / r.loss) : '—'), td(fInt(r.gp)), td(fInt(r.gp_after)), td(fYoy(r.gp_after_yoy), yoyCls(r.gp_after_yoy)), td(fYoy(r.loss_after_yoy), r.loss_after_yoy > 100 ? 'ac-neg' : ''));
+    tr.append(td(wkLabel(r.week_start, addDays(r.week_start, 6))), td(fInt(r.sales)), td(fInt(r.loss)), td(fInt(r.support_baika)), td(r.loss ? fRate(r.support_baika / r.loss) : '—'), td(fInt(r.gp)), td(fInt(r.gp_after)), td(fYoy1(r.gp_after_yoy), yoyCls(r.gp_after_yoy)), td(fYoy1(r.loss_after_yoy), r.loss_after_yoy > 100 ? 'ac-neg' : 'ac-pos'));
     return tr;
   }));
 }
@@ -1204,21 +1282,41 @@ function draw() {
   if (state.page === 'support') drawSupport();
   if (state.page === 'store') drawStore();
   if (state.page === 'month') drawMonth();
+  // グラフ（svg role=img）に、カードの見出しを読み上げ用の名前として付ける
+  document.querySelectorAll('.ac-page:not([hidden]) svg[role="img"]').forEach((svg) => {
+    const h = svg.closest('.ac-card')?.querySelector('h2');
+    if (h) svg.setAttribute('aria-label', `グラフ：${h.textContent.trim()}`);
+  });
 }
 
 /* ---------- パスワード画面 ---------- */
+/* データは暗号化して置いている（tools/build_site_data.mjs）。パスワードが合ったときだけ復号して表示する。 */
 (() => {
-  const HASH = 'd92c48f70c939c4a6333501ec3aab83f21ef9fc6e56abd23f9635a7628996435';
-  const pw = el('lock-pw'), err = el('lock-err');
-  const sha = async (t) => [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)))].map((x) => x.toString(16).padStart(2, '0')).join('');
-  const tryOpen = async () => {
-    let ok2 = false;
-    try { ok2 = (await sha('aico-' + pw.value.trim())) === HASH; } catch (e) { ok2 = false; }
-    if (ok2) { el('lock').hidden = true; el('ac-main').hidden = false; draw(); }
-    else { err.textContent = 'パスワードが違います。'; pw.select(); }
+  const form = el('lock'), pw = el('lock-pw'), err = el('lock-err'), go = el('lock-go');
+  const enc = window.AICO_ENC;
+  const unb64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
+  const decrypt = async (pass) => {
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: unb64(enc.salt), iterations: enc.iter, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(enc.iv) }, key, unb64(enc.ct));
+    return JSON.parse(new TextDecoder().decode(plain));
   };
-  el('lock-go').addEventListener('click', tryOpen);
-  pw.addEventListener('keydown', (e) => { if (e.key === 'Enter') tryOpen(); });
+  const busy = (on) => { go.disabled = on; pw.disabled = on; go.textContent = on ? '確認中…' : '開く'; form.setAttribute('aria-busy', String(on)); };
+  if (!enc) { err.textContent = 'データを読み込めませんでした。ページを再読み込みしてください。'; go.disabled = true; return; }
+  if (!window.crypto || !crypto.subtle) { err.textContent = 'このブラウザでは開けません（https のページで開いてください）。'; go.disabled = true; return; }
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pass = pw.value.trim();
+    if (!pass) { err.textContent = 'パスワードを入力してください。'; pw.focus(); return; }
+    busy(true); err.textContent = '';
+    let data = null;
+    try { data = await decrypt(pass); } catch (e2) { data = null; }
+    busy(false);
+    if (!data) { err.textContent = 'パスワードが違います。'; pw.select(); return; }
+    form.hidden = true; el('ac-main').hidden = false;
+    dash.load(data);
+    el('title').focus({ preventScroll: true });
+  });
   pw.addEventListener('input', () => { err.textContent = ''; });
   pw.focus();
 })();
@@ -1226,7 +1324,7 @@ function draw() {
 dash.onData(draw);
 
 const named = location.hash.slice(1);
-if (['overview', 'compare', 'sim', 'support', 'store', 'month', 'notes'].includes(named)) setPage(named);
+setPage(tabs.some((b) => b.dataset.page === named) ? named : 'overview');
 </script>
 
 </body>
