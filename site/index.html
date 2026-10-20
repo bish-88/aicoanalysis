@@ -480,7 +480,8 @@ body{padding:24px 16px 48px}
   <section class="ac-page" id="month" role="tabpanel" aria-labelledby="tab-month" hidden>
     <div class="ac-card" id="month-table-card">
       <h2>月計（週次レポートの当月欄）</h2>
-      <p class="ac-note">最終週のレポートにある「当月」欄の値です。前年比が100%未満の数字は赤です。</p>
+      <p class="ac-note">週次レポートの「当月」欄の値（1店1日あたり）です。月の途中は、その日までの合計です。前年比が100%未満の数字は赤です。</p>
+      <div class="ac-chips" id="month-pick" role="group" aria-label="月"></div>
       <div class="ac-scroll">
         <table class="ac-table" id="month-table" data-source="monthly_total" data-row-key="key">
           <thead><tr>
@@ -497,6 +498,7 @@ body{padding:24px 16px 48px}
             <th data-field="gross_profit">荒利益高</th>
             <th data-field="gp_yoy">荒利前年比</th>
             <th data-source="month_rates" data-field="gp_rate">荒利率</th>
+            <th id="month-diff-h">荒利率<br>前月差</th>
           </tr></thead>
           <tbody></tbody>
         </table>
@@ -663,11 +665,17 @@ const fPt = (v) => (isZeroPt(v) ? '±' : v > 0 ? '+' : '−') + Math.abs(v * 100
 const fYoy = (v) => (v == null || v === '' ? '—' : (Number.isInteger(Number(v)) ? Number(v) : Number(v).toFixed(1)) + '%');
 const fYoy1 = (v) => (v == null || v === '' ? '—' : Number(v).toFixed(1) + '%');
 const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const fPtX = (v) => fPt(v);
 const fRatio = (v) => (v == null ? '—' : (v * 100).toFixed(1) + '%');
 const wkShort = (s) => { const a = s.split('-'); return `${+a[1]}/${+a[2]}`; };
 const wkLabel = (s, e) => { const a = s.split('-'), b = (e || '').split('-'); return `${+a[1]}/${+a[2]}〜${b.length > 2 ? `${+b[1]}/${+b[2]}` : ''}`; };
+// 月のラベル。月の途中の値（period_end あり）は「10月（1〜18日）」のように途中までと分かるようにする
+const monthLabel = (m) => {
+  const d = dash.data('monthly_total'), r = d.status === 'ok' ? d.data.find((x) => x.month === m && x.period_end) : null;
+  return r ? `${+m.split('-')[1]}月（1〜${+r.period_end.slice(8)}日）` : `${+m.split('-')[1]}月`;
+};
 const fullName = (s) => { const d = dash.data('weekly_total'); const r = d.status === 'ok' ? d.data.find((x) => x.store === s) : null; return (r && r.store_name) || s; };
-const state = { page: 'overview', week: null, store: null, catPeriod: null, catSort: { k: 'sales', d: -1 }, metric: 'gp_yoy' };
+const state = { page: 'overview', week: null, store: null, catPeriod: null, catSort: { k: 'sales', d: -1 }, metric: 'gp_yoy', month: null };
 const el = (id) => document.getElementById(id);
 const td = (text, cls) => { const c = document.createElement('td'); c.textContent = text; if (cls) c.className = cls; return c; };
 const yoyCls = (v) => (v != null && v !== '' && Number(v) < 100 ? 'ac-neg' : '');
@@ -954,7 +962,7 @@ function drawCategory(mine, endOf) {
   const monthOk = dash.data('monthly_category').status === 'ok';
   const periods = mine.map((r) => ({ id: r.week_start, label: wkLabel(r.week_start, endOf.get(r.week_start)) }));
   const months = monthOk ? [...new Set(dash.data('monthly_category').data.filter((r) => r.store === state.store).map((r) => r.month))].sort() : [];
-  months.forEach((m) => periods.push({ id: 'M' + m, label: `月計 ${+m.split('-')[1]}月` }));
+  months.forEach((m) => periods.push({ id: 'M' + m, label: `月計 ${monthLabel(m)}` }));
   if (!state.catPeriod || !periods.some((p) => p.id === state.catPeriod)) state.catPeriod = state.week && periods.some((p) => p.id === state.week) ? state.week : periods[periods.length - 1]?.id;
   el('cat-period').replaceChildren(...periods.map((p) => {
     const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = p.label; b.setAttribute('aria-pressed', String(p.id === state.catPeriod));
@@ -1023,12 +1031,23 @@ function drawHeat(mine, endOf) {
 function drawMonth() {
   if (ok('monthly_total', 'month_rates')) {
     const mt = dash.data('monthly_total').data, rates = new Map(dash.data('month_rates').data.map((r) => [r.key, r]));
-    const rows = mt.slice().sort((a, b) => b.month.localeCompare(a.month) || rates.get(b.key).gp_rate - rates.get(a.key).gp_rate);
+    const months = [...new Set(mt.map((r) => r.month))].sort();
+    if (!state.month || !months.includes(state.month)) state.month = months[months.length - 1];
+    el('month-pick').replaceChildren(...months.slice().reverse().map((m) => {
+      const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = monthLabel(m); b.setAttribute('aria-pressed', String(m === state.month));
+      b.addEventListener('click', () => { state.month = m; draw(); }); return b;
+    }));
+    const prevM = months[months.indexOf(state.month) - 1];
+    const prevOf = new Map(mt.filter((r) => r.month === prevM).map((r) => [r.store, rates.get(r.key)]));
+    el('month-diff-h').hidden = !prevM;
+    if (prevM) el('month-diff-h').title = `${monthLabel(prevM)}との差`;
+    const rows = mt.filter((r) => r.month === state.month).sort((a, b) => rates.get(b.key).gp_rate - rates.get(a.key).gp_rate);
     document.querySelector('#month-table tbody').replaceChildren(...rows.map((r) => {
       const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
       const c0 = td(r.store); c0.title = r.store_name || r.store;
-      tr.append(c0, td(r.month), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
-        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)));
+      tr.append(c0, td(monthLabel(r.month)), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
+        td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), (() => { const c = td(fRate(q.gp_rate)); c.style.fontWeight = '600'; return c; })());
+      if (prevM) { const pq = prevOf.get(r.store), dlt = pq ? q.gp_rate - pq.gp_rate : null; tr.append(td(dlt == null ? '—' : fPtX(dlt), dlt == null ? '' : dlt < 0 ? 'ac-neg' : 'ac-pos')); }
       return tr;
     }));
   }
@@ -1179,7 +1198,7 @@ function drawSim() {
   el('sim-k').textContent = `約${Math.round(((kd + kw) / 2) * 100)}円`;
   const ratio = +el('sim-ratio').value / 100;
   const mon = dash.data('opportunity').data[0]?.month;
-  if (mon) el('sim-basis').textContent = `金額は${+mon.split('-')[1]}月の月計（1日あたり）をもとにしています。`;
+  if (mon) el('sim-basis').textContent = `金額は${monthLabel(mon)}の月計（1日あたり）をもとにしています。`;
   el('sim-ratio-o').textContent = `${Math.round(ratio * 10)}割`;
   const gainOf = (d, w) => ratio * (d * kd + w * kw);
   // store table
