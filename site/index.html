@@ -160,6 +160,11 @@ body{padding:24px 16px 48px}
 .ac-store li b{color:var(--color-ok);font-weight:600}
 .ac-details summary{cursor:pointer;list-style:revert}
 .ac-details summary h2{display:inline}
+.ac-sub-h{margin:var(--cds-gap-sm) 0 0;font-size:var(--cds-font-size-body);font-weight:var(--cds-font-weight-medium)}
+.ac-mtd th.grp{text-align:center;border-bottom:0}
+.ac-mtd td.d{font-weight:600}
+.ac-mtd tfoot td{font-weight:600;border-top:1px solid var(--color-fg-muted)}
+.ac-mtd th.sep,.ac-mtd td.sep{border-left:1px solid var(--color-border-line)}
 .ac-lock{max-width:22rem;margin:12vh auto 0;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-xl);display:flex;flex-direction:column;gap:var(--cds-gap-md);font-family:var(--font-anthropic-sans);color:var(--color-fg)}
 .ac-lock h1{margin:0;font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title)}
 .ac-lock-row{display:flex;gap:var(--cds-gap-sm)}
@@ -478,6 +483,18 @@ body{padding:24px 16px 48px}
 
   <!-- 月次 -->
   <section class="ac-page" id="month" role="tabpanel" aria-labelledby="tab-month" hidden>
+    <div class="ac-card" id="mtd-card">
+      <div class="ac-cmp-head"><h2 id="mtd-title">月の途中経過：先週までと今週までの違い</h2><div class="ac-chips" id="mtd-mode" role="group" aria-label="金額の単位"></div></div>
+      <p class="ac-note" id="mtd-note">週次レポートの「当月」欄を、先週のレポートと今週のレポートで比べます。</p>
+      <div class="ac-scroll">
+        <table class="ac-table ac-mtd" id="mtd-table" data-source="mtd_total" data-row-key="key"><thead></thead><tbody></tbody><tfoot></tfoot></table>
+      </div>
+      <h3 class="ac-sub-h" id="mtd-cat-title">カテゴリ別の違い</h3>
+      <div class="ac-chips" id="mtd-stores" role="group" aria-label="店舗"></div>
+      <div class="ac-scroll ac-tall">
+        <table class="ac-table ac-mtd" id="mtd-cat-table" data-source="mtd_category" data-row-key="key"><thead></thead><tbody></tbody></table>
+      </div>
+    </div>
     <div class="ac-card" id="month-table-card">
       <h2>月計（週次レポートの当月欄）</h2>
       <p class="ac-note">週次レポートの「当月」欄の値（1店1日あたり）です。月の途中は、その日までの合計です。前年比が100%未満の数字は赤です。</p>
@@ -1028,7 +1045,93 @@ function drawHeat(mine, endOf) {
   }));
 }
 
+/* ---------- 月の途中経過（当月欄を週ごとに比べる） ---------- */
+const mtdState = { mode: 'day', store: null };
+function drawMtd() {
+  const card = el('mtd-card');
+  if (!ok('mtd_total')) { card.hidden = true; return; }
+  const all = dash.data('mtd_total').data;
+  const ends = [...new Set(all.map((r) => r.period_end))].sort();
+  if (ends.length < 2) { card.hidden = true; return; }
+  card.hidden = false;
+  const [e0, e1] = ends.slice(-2);
+  const lab = (e) => `${+e.slice(5, 7)}/1〜${+e.slice(5, 7)}/${+e.slice(8)}`;
+  const d0 = all.find((r) => r.period_end === e0).days, d1 = all.find((r) => r.period_end === e1).days;
+  const addFrom = addDays(e0, 1);
+  const isTot = mtdState.mode === 'total';
+  el('mtd-title').textContent = `月の途中経過：${lab(e0)} と ${lab(e1)} の違い`;
+  el('mtd-note').textContent = isTot
+    ? `期間合計＝1日あたり×日数（${d0}日・${d1}日）。差は ${+addFrom.slice(5, 7)}/${+addFrom.slice(8)}〜${+e1.slice(5, 7)}/${+e1.slice(8)}（${d1 - d0}日）に増えた金額です。`
+    : `レポートの当月欄は1日あたりの値です。差は1日あたりの平均がどれだけ動いたかです。荒利率は荒利益高÷販売高。`;
+  el('mtd-mode').replaceChildren(...[['day', '1日あたり'], ['total', '期間合計']].map(([k, l]) => {
+    const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = l; b.setAttribute('aria-pressed', String(k === mtdState.mode));
+    b.addEventListener('click', () => { mtdState.mode = k; draw(); }); return b;
+  }));
+  const order = ok('weekly_total') ? storeOrder(dash.data('weekly_total').data) : [...new Set(all.map((r) => r.store))];
+  const mult = (r) => (isTot ? r.days : 1);
+  const val = (r, f) => (f === 'loss' ? (+r.discount + +r.waste) : +r[f]) * mult(r);
+  // 大事な順：販売高 → 荒利益高 → 荒利率 → ロス（値引＋廃棄）→ 値引 → 廃棄
+  const M = [['sales', '販売高', 1], ['gross_profit', '荒利益高', 1], ['gp_rate', '荒利率', 1], ['loss', 'ロス額（値引＋廃棄）', -1], ['discount', '値引高', -1], ['waste', '廃棄高', -1]];
+  const dcls = (v, good) => (Math.round(v) === 0 ? '' : (v > 0) === (good > 0) ? 'ac-pos' : 'ac-neg');
+  const sg = (v) => (Math.round(v) > 0 ? '+' : Math.round(v) < 0 ? '−' : '±') + fInt(Math.abs(Math.round(v)));
+  const head = (first) => {
+    const r1 = document.createElement('tr'), r2 = document.createElement('tr');
+    const th0 = document.createElement('th'); th0.rowSpan = 2; th0.textContent = first; r1.append(th0);
+    M.map((m) => m[1]).forEach((h) => { const th = document.createElement('th'); th.colSpan = 3; th.className = 'grp sep'; th.textContent = h; r1.append(th); });
+    M.forEach(() => [lab(e0), lab(e1), '差'].forEach((h, i) => { const th = document.createElement('th'); th.textContent = h; if (i === 0) th.className = 'sep'; r2.append(th); }));
+    return [r1, r2];
+  };
+  const cells = (a, b) => {
+    const out = [];
+    M.forEach(([f, , good]) => {
+      if (f === 'gp_rate') {
+        const ra = a && +a.sales ? +a.gross_profit / +a.sales : null, rb = b && +b.sales ? +b.gross_profit / +b.sales : null;
+        out.push(td(ra == null ? '—' : fRate(ra), 'sep'), td(rb == null ? '—' : fRate(rb)), ra == null || rb == null ? td('—') : td(fPt(rb - ra), 'd ' + (isZeroPt(rb - ra) ? '' : rb > ra ? 'ac-pos' : 'ac-neg')));
+        return;
+      }
+      const va = a ? val(a, f) : null, vb = b ? val(b, f) : null;
+      const c0 = td(va == null ? '—' : fInt(Math.round(va)), 'sep'); out.push(c0, td(vb == null ? '—' : fInt(Math.round(vb))));
+      out.push(va == null || vb == null ? td('—') : td(sg(vb - va), 'd ' + dcls(vb - va, good)));
+    });
+    return out;
+  };
+  // 店舗別
+  const t = el('mtd-table');
+  t.querySelector('thead').replaceChildren(...head('店舗'));
+  const by = (e) => new Map(all.filter((r) => r.period_end === e).map((r) => [r.store, r]));
+  const A = by(e0), B = by(e1);
+  t.querySelector('tbody').replaceChildren(...order.filter((st) => A.has(st) || B.has(st)).map((st) => {
+    const tr = document.createElement('tr'); tr.dataset.key = (B.get(st) || A.get(st)).key;
+    const c0 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = dash.colors[order.indexOf(st) % dash.colors.length]; c0.append(dot, document.createTextNode(st)); c0.title = fullName(st);
+    tr.append(c0, ...cells(A.get(st), B.get(st))); return tr;
+  }));
+  // 5店合計（1日あたりは5店の1日あたりを足したもの）
+  const sum = (m) => { const rs = [...m.values()]; if (!rs.length) return null; const o = { days: rs[0].days }; ['sales', 'discount', 'waste', 'gross_profit'].forEach((f) => { o[f] = d3.sum(rs, (r) => +r[f]); }); return o; };
+  const fr = document.createElement('tr'); fr.append(td('5店合計'), ...cells(sum(A), sum(B)));
+  t.querySelector('tfoot').replaceChildren(fr);
+  // カテゴリ別
+  if (!mtdState.store || !order.includes(mtdState.store)) mtdState.store = order[0];
+  el('mtd-stores').replaceChildren(...order.map((st) => {
+    const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = st; b.title = fullName(st); b.setAttribute('aria-pressed', String(st === mtdState.store));
+    b.addEventListener('click', () => { mtdState.store = st; draw(); }); return b;
+  }));
+  el('mtd-cat-title').textContent = `${mtdState.store}　カテゴリ別の違い（荒利益高の差が大きい順）`;
+  const ct = el('mtd-cat-table');
+  ct.querySelector('thead').replaceChildren(...head('カテゴリ'));
+  if (!ok('mtd_category')) { ct.querySelector('tbody').replaceChildren(); return; }
+  const cats = dash.data('mtd_category').data.filter((r) => r.store === mtdState.store);
+  const cA = new Map(cats.filter((r) => r.period_end === e0).map((r) => [r.category, r])), cB = new Map(cats.filter((r) => r.period_end === e1).map((r) => [r.category, r]));
+  const names = [...new Set(cats.map((r) => r.category))];
+  const gpd = (c) => { const a = cA.get(c), b = cB.get(c); return a && b ? Math.abs(val(b, 'gross_profit') - val(a, 'gross_profit')) : -1; };
+  names.sort((x, y) => gpd(y) - gpd(x));
+  ct.querySelector('tbody').replaceChildren(...names.map((c) => {
+    const tr = document.createElement('tr'); tr.dataset.key = (cB.get(c) || cA.get(c)).key;
+    tr.append(td(c), ...cells(cA.get(c), cB.get(c))); return tr;
+  }));
+}
+
 function drawMonth() {
+  drawMtd();
   if (ok('monthly_total', 'month_rates')) {
     const mt = dash.data('monthly_total').data, rates = new Map(dash.data('month_rates').data.map((r) => [r.key, r]));
     const months = [...new Set(mt.map((r) => r.month))].sort();

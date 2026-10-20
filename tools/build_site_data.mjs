@@ -14,7 +14,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { webcrypto as crypto } from 'node:crypto';
 
-const NAMES = ['weekly_total', 'weekly_category', 'monthly_total', 'monthly_category', 'monthly_trend', 'support_weekly', 'support_period'];
+const NAMES = ['weekly_total', 'weekly_category', 'monthly_total', 'monthly_category', 'monthly_trend', 'support_weekly', 'support_period', 'mtd_total', 'mtd_category'];
 const ITER = 600000;
 
 const [dir, out = 'site/data.enc.js'] = process.argv.slice(2);
