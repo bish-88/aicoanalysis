@@ -192,6 +192,7 @@ body{padding:24px 16px 48px}
     <button class="ac-tab" role="tab" id="tab-overview" data-page="overview" aria-selected="true">5店舗サマリー</button>
     <button class="ac-tab" role="tab" id="tab-compare" data-page="compare" aria-selected="false">週別の比較</button>
     <button class="ac-tab" role="tab" id="tab-sim" data-page="sim" aria-selected="false">改善シミュレーション</button>
+    <button class="ac-tab" role="tab" id="tab-support" data-page="support" aria-selected="false">本部支援</button>
     <button class="ac-tab" role="tab" id="tab-store" data-page="store" aria-selected="false">店舗別</button>
     <button class="ac-tab" role="tab" id="tab-month" data-page="month" aria-selected="false">月次</button>
     <button class="ac-tab" role="tab" id="tab-notes" data-page="notes" aria-selected="false">見方と所見</button>
@@ -318,6 +319,65 @@ body{padding:24px 16px 48px}
         <li>同じ店で比べると、ロスが多い週ほど販売前年比は低い傾向でした。売れない週に並べる量を減らせていないことがロスの主な原因です。</li>
       </ul>
     </details>
+  </section>
+
+  <!-- 本部支援 -->
+  <section class="ac-page" id="support" hidden>
+    <div class="ac-card ac-hero" id="sup-hero">
+      <p class="ac-big" id="sup-head"><span class="dash-skeleton">—</span></p>
+      <p class="ac-note" id="sup-sub">世界一成長する店舗づくり大作戦 検証レポート（7日間確定値）より。金額は1日平均×日数で求めた期間合計です。</p>
+    </div>
+
+    <div class="ac-kpis">
+      <div class="ac-kpi"><span class="ac-kpi-l">5店のロス（値引＋廃棄）28日</span><span class="ac-kpi-v" id="sup-k1" data-source="support_period">—</span><span class="ac-kpi-s">売価ベース</span></div>
+      <div class="ac-kpi"><span class="ac-kpi-l">もらった本部支援 28日（売価）</span><span class="ac-kpi-v" id="sup-k2" data-source="support_period">—</span><span class="ac-kpi-s" id="sup-k2s">—</span></div>
+      <div class="ac-kpi"><span class="ac-kpi-l">本部支援額（原価・精算書の額）</span><span class="ac-kpi-v" id="sup-k3" data-source="support_period">—</span><span class="ac-kpi-s">荒利益に加わる額</span></div>
+      <div class="ac-kpi"><span class="ac-kpi-l">支援を引いた残りのロス 28日</span><span class="ac-kpi-v" id="sup-k4" data-source="support_period">—</span><span class="ac-kpi-s">お店が負担している分</span></div>
+    </div>
+
+    <div class="ac-card" id="sup-table-card">
+      <h2>店舗ごと：ロスと支援（9/15〜10/12、28日）</h2>
+      <p class="ac-note">カバー率 ＝ 支援額（売価）÷ ロス額。支援後の前年比が100%未満は赤（荒利）、100%超は赤（ロス）。</p>
+      <div class="ac-scroll">
+        <table class="ac-table" id="sup-table" data-source="support_period" data-row-key="key">
+          <thead><tr>
+            <th data-field="store">店舗</th>
+            <th data-field="loss_28d">ロス額</th>
+            <th data-field="support_baika_28d">支援（売価）</th>
+            <th data-field="cover_rate">カバー率</th>
+            <th data-field="support_B">支援（原価）</th>
+            <th data-field="gp_rate">荒利率<br>支援前</th>
+            <th data-field="gp_after_rate">荒利率<br>支援後</th>
+            <th data-field="gp_after_yoy">支援後荒利<br>前年比</th>
+            <th data-field="loss_after_yoy">支援後ロス<br>前年比</th>
+            <th>判定</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ac-card" id="sup-week-card">
+      <div class="ac-cmp-head"><h2 id="sup-week-title">週ごとのロスと支援</h2><div class="ac-chips" id="sup-stores" role="group" aria-label="店舗"></div></div>
+      <p class="ac-note">棒＝ロス額（値引＋廃棄、1日）。濃い部分が本部支援でカバーされた額（売価）。</p>
+      <div class="ac-chart" id="sup-chart" data-source="support_weekly"></div>
+      <div class="ac-scroll ac-tall">
+        <table class="ac-table" id="sup-week-table" data-source="support_weekly" data-row-key="key">
+          <thead><tr><th data-field="week_start">週</th><th data-field="sales">販売高</th><th data-field="loss">ロス額</th><th data-field="support_baika">支援（売価）</th><th>カバー率</th><th data-field="gp">荒利 支援前</th><th data-field="gp_after">荒利 支援後</th><th data-field="gp_after_yoy">支援後荒利前年比</th><th data-field="loss_after_yoy">支援後ロス前年比</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="ac-card" id="sup-check">
+      <h2>確認したこと</h2>
+      <ul class="ac-list">
+        <li><b>計算は正しい：</b>11回分×20店の全500店週で、売変高Ⅲ＝廃棄＋値引、支援後売変＝売変−支援（売価）、支援後荒利＝荒利＋支援（原価）がすべて一致しました。精算書の28日累計（B）も、週の支援額の合計とほぼ一致します（青山三だけ＋6%）。</li>
+        <li><b>支援はロスに比例して増える：</b>ロスが100円増えると、支援は売価で約49円（原価で約32円）増えます。支援でロスの3割前後は戻りますが、7割はお店の負担のままです。</li>
+        <li><b>支援があっても前年を下回る：</b>5店とも、支援後の荒利は前年より低く、支援後のロスは前年より多い状態です。支援がロスの増加を隠している形で、「このままでよい」とは言えません。</li>
+        <li><b>以前のデータ（AI.CO週次）との違い：</b>AI.CO週次は火〜日の6日間の速報、このレポートは火〜月の7日間の確定値です。同じ週でも販売高が−5%〜＋14%違う週があります（特に9/22・9/29の連休前後）。荒利・ロス・支援はこのレポートの確定値を正とします。</li>
+      </ul>
+    </div>
   </section>
 
   <!-- 店舗別 -->
@@ -1089,11 +1149,59 @@ function drawSim() {
 }
 el('model-card').addEventListener('toggle', () => drawSim());
 
+/* ---------- 本部支援 ---------- */
+const supState = { store: null };
+function drawSupport() {
+  if (!ok('support_period', 'support_weekly')) return;
+  const sp = dash.data('support_period').data, ours = sp.filter((r) => r.our_store);
+  const L = d3.sum(ours, (r) => r.loss_28d), SB = d3.sum(ours, (r) => r.support_baika_28d), BB = d3.sum(ours, (r) => r.support_B);
+  const yen = (v) => `${fInt(Math.round(v))}円`;
+  el('sup-head').replaceChildren('5店で28日間に出たロスは ', (() => { const s = document.createElement('b'); s.textContent = yen(L); return s; })(), '。そのうち本部支援で戻ったのは ', (() => { const s = document.createElement('b'); s.textContent = `${yen(SB)}（${fRate(SB / L)}）`; return s; })(), '。残りの7割はお店の負担です。');
+  el('sup-k1').textContent = yen(L); el('sup-k2').textContent = yen(SB); el('sup-k2s').textContent = `ロスの ${fRate(SB / L)}`; el('sup-k3').textContent = yen(BB); el('sup-k4').textContent = yen(L - SB);
+  const order = ok('weekly_total') ? storeOrder(dash.data('weekly_total').data) : [];
+  document.querySelector('#sup-table tbody').replaceChildren(...ours.slice().sort((a, b) => b.cover_rate - a.cover_rate).map((r) => {
+    const tr = document.createElement('tr'); tr.dataset.key = r.key;
+    const c0 = document.createElement('td'); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = dash.colors[Math.max(0, order.indexOf(r.store)) % dash.colors.length]; c0.append(dot, document.createTextNode(r.store));
+    const verdict = r.gp_after_yoy < 100 && r.loss_after_yoy > 100 ? ['要改善：支援込みでも前年割れ', 'ac-neg'] : r.gp_after_yoy < 100 ? ['荒利が前年割れ', 'ac-neg'] : ['良好', 'ac-pos'];
+    tr.append(c0, td(fInt(r.loss_28d)), td(fInt(r.support_baika_28d)), td(fRate(r.cover_rate)), td(fInt(r.support_B)), td(fRate(r.gp_rate)), td(fRate(r.gp_after_rate)),
+      td(fYoy(r.gp_after_yoy), r.gp_after_yoy < 100 ? 'ac-neg' : ''), td(fYoy(r.loss_after_yoy), r.loss_after_yoy > 100 ? 'ac-neg' : 'ac-pos'), td(verdict[0], verdict[1]));
+    return tr;
+  }));
+  // weekly
+  const sw = dash.data('support_weekly').data, stores = [...new Set(sw.map((r) => r.store))];
+  if (!supState.store || !stores.includes(supState.store)) supState.store = stores[0];
+  el('sup-stores').replaceChildren(...stores.map((s) => { const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = s; b.setAttribute('aria-pressed', String(s === supState.store)); b.addEventListener('click', () => { supState.store = s; draw(); }); return b; }));
+  el('sup-week-title').textContent = `${supState.store}　週ごとのロスと支援`;
+  const mine = sw.filter((r) => r.store === supState.store).sort((a, b) => a.week_start.localeCompare(b.week_start));
+  const box = el('sup-chart'); box.replaceChildren();
+  const W = Math.max(300, box.clientWidth), H = 300, m = { l: 56, r: 12, t: 12, b: 34 };
+  const x = d3.scaleBand(mine.map((r) => r.week_start), [m.l, W - m.r]).padding(0.25);
+  const y = d3.scaleLinear([0, d3.max(mine, (r) => r.loss) * 1.08], [H - m.b, m.t]).nice();
+  const svg = d3.select(box).append('svg').attr('width', '100%').attr('viewBox', `0 0 ${W} ${H}`).attr('role', 'img');
+  svg.selectAll(null).data(y.ticks(5)).join('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y).attr('y2', y).style('stroke', 'var(--cds-chart-grid)');
+  svg.selectAll(null).data(y.ticks(5)).join('text').attr('x', m.l - 6).attr('y', (d) => y(d) + 4).attr('text-anchor', 'end').attr('font-size', 11).style('fill', 'var(--color-fg-muted)').text(d3.format(','));
+  const step = Math.ceil(mine.length / 8);
+  svg.selectAll(null).data(mine.filter((r, i) => i % step === 0 || i === mine.length - 1)).join('text').attr('x', (r) => x(r.week_start) + x.bandwidth() / 2).attr('y', H - 12).attr('text-anchor', 'middle').attr('font-size', 11).style('fill', 'var(--color-fg-muted)').text((r) => `${+r.week_start.slice(5, 7)}/${+r.week_start.slice(8)}`);
+  const tip = makeTip(box), col = dash.colors[Math.max(0, order.indexOf(supState.store)) % dash.colors.length];
+  mine.forEach((r) => {
+    const g = svg.append('g');
+    g.append('rect').attr('x', x(r.week_start)).attr('width', x.bandwidth()).attr('y', y(r.loss)).attr('height', y(0) - y(r.loss)).attr('rx', 3).style('fill', 'var(--cds-chart-muted)').attr('opacity', 0.55);
+    g.append('rect').attr('x', x(r.week_start)).attr('width', x.bandwidth()).attr('y', y(r.support_baika)).attr('height', y(0) - y(r.support_baika)).attr('rx', 3).style('fill', col);
+    g.on('mousemove', () => { const s = box.clientWidth / W; tip.show((x(r.week_start) + x.bandwidth()) * s, y(r.loss) * s, `${+r.week_start.slice(5, 7)}/${+r.week_start.slice(8)}週`, [[null, 'ロス', fInt(r.loss)], [col, '支援', fInt(r.support_baika)], [null, 'カバー率', r.loss ? fRate(r.support_baika / r.loss) : '—']]); }).on('mouseleave', () => tip.hide());
+  });
+  document.querySelector('#sup-week-table tbody').replaceChildren(...mine.slice().reverse().map((r) => {
+    const tr = document.createElement('tr'); tr.dataset.key = r.key;
+    tr.append(td(r.week_start), td(fInt(r.sales)), td(fInt(r.loss)), td(fInt(r.support_baika)), td(r.loss ? fRate(r.support_baika / r.loss) : '—'), td(fInt(r.gp)), td(fInt(r.gp_after)), td(fYoy(r.gp_after_yoy), yoyCls(r.gp_after_yoy)), td(fYoy(r.loss_after_yoy), r.loss_after_yoy > 100 ? 'ac-neg' : ''));
+    return tr;
+  }));
+}
+
 function draw() {
   drawHeader();
   if (state.page === 'overview') drawOverview();
   if (state.page === 'compare') drawCompare();
   if (state.page === 'sim') drawSim();
+  if (state.page === 'support') drawSupport();
   if (state.page === 'store') drawStore();
   if (state.page === 'month') drawMonth();
 }
@@ -1118,7 +1226,7 @@ function draw() {
 dash.onData(draw);
 
 const named = location.hash.slice(1);
-if (['overview', 'compare', 'sim', 'store', 'month', 'notes'].includes(named)) setPage(named);
+if (['overview', 'compare', 'sim', 'support', 'store', 'month', 'notes'].includes(named)) setPage(named);
 </script>
 
 </body>
