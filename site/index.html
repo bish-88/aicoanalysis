@@ -165,6 +165,17 @@ body{padding:24px 16px 48px}
 .ac-mtd td.d{font-weight:600}
 .ac-mtd tfoot td{font-weight:600;border-top:1px solid var(--color-fg-muted)}
 .ac-mtd th.sep,.ac-mtd td.sep{border-left:1px solid var(--color-border-line)}
+.ac-sr tbody tr.em td,.ac-scroll .ac-sr tbody tr.em td:first-child{font-weight:600;background:color-mix(in srgb, var(--color-fg) 5%, var(--color-panel))}
+@media (max-width:640px){.ac-sr th,.ac-sr td{padding-inline:6px}}
+.ac-sr td.d{font-weight:600}
+.ac-sr-ud{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,20rem),1fr));gap:var(--cds-gap-md)}
+.ac-sr-col{border-radius:var(--cds-radius);padding:var(--cds-pad-md) var(--cds-pad-lg)}
+.ac-sr-col.up{background:var(--ac-good-bg)}.ac-sr-col.down{background:var(--ac-bad-bg)}
+.ac-sr-col h3{margin:0 0 var(--cds-gap-sm);font-size:var(--cds-font-size-body)}
+.ac-sr-col.up h3{color:var(--color-ok)}.ac-sr-col.down h3{color:var(--color-bad)}
+.ac-sr-col ol{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:var(--cds-gap-sm);font-size:var(--cds-font-size-body)}
+.ac-sr-col li .why{display:block;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ac-sr-col li b{font-weight:600}
 .ac-lock{max-width:22rem;margin:12vh auto 0;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-xl);display:flex;flex-direction:column;gap:var(--cds-gap-md);font-family:var(--font-anthropic-sans);color:var(--color-fg)}
 .ac-lock h1{margin:0;font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title)}
 .ac-lock-row{display:flex;gap:var(--cds-gap-sm)}
@@ -428,6 +439,32 @@ body{padding:24px 16px 48px}
   <!-- 店舗別 -->
   <section class="ac-page" id="store" role="tabpanel" aria-labelledby="tab-store" hidden>
     <div class="ac-chips" id="store-chips" role="group" aria-label="店舗"></div>
+
+    <div class="ac-card ac-hero" id="sr-card">
+      <p class="ac-note" id="sr-eyebrow">店舗レポート</p>
+      <p class="ac-big" id="sr-head"><span class="dash-skeleton">—</span></p>
+      <p class="ac-note" id="sr-sub"></p>
+    </div>
+    <div class="ac-grid">
+      <div class="ac-card" id="sr-week-card">
+        <h2 id="sr-week-title">先週との比較（1日あたり）</h2>
+        <p class="ac-note">各週のレポートの「前週」欄（火〜日の6日間）です。</p>
+        <div class="ac-scroll"><table class="ac-table ac-sr" id="sr-week"><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div class="ac-card" id="sr-mtd-card">
+        <h2 id="sr-mtd-title">当月の累計（1日あたり）</h2>
+        <p class="ac-note" id="sr-mtd-note">各週のレポートの「当月」欄です。</p>
+        <div class="ac-scroll"><table class="ac-table ac-sr" id="sr-mtd"><thead></thead><tbody></tbody></table></div>
+      </div>
+    </div>
+    <div class="ac-card" id="sr-cat-card">
+      <h2>先週から荒利益が上がった・下がったカテゴリ</h2>
+      <p class="ac-note">1日あたりの荒利益高の差が大きい順。カッコ内は売上・値引・廃棄の差です。</p>
+      <div class="ac-sr-ud">
+        <div class="ac-sr-col up"><h3>▲ 上がった</h3><ol id="sr-up"></ol></div>
+        <div class="ac-sr-col down"><h3>▼ 下がった</h3><ol id="sr-down"></ol></div>
+      </div>
+    </div>
 
     <div class="ac-card" id="store-weeks">
       <h2 id="store-weeks-title">週別の推移</h2>
@@ -946,6 +983,62 @@ function drawOverview() {
   }
 }
 
+/* ---------- 店舗レポート（先週との比較） ---------- */
+function drawStoreReport(mine, endOf) {
+  const i = mine.findIndex((r) => r.week_start === state.week);
+  const cur = mine[i >= 0 ? i : mine.length - 1], pre = mine[(i >= 0 ? i : mine.length - 1) - 1];
+  const sg = (v) => (Math.round(v) > 0 ? '▲+' : Math.round(v) < 0 ? '▼−' : '±') + fInt(Math.abs(Math.round(v)));
+  const MET = [['販売高', (r) => +r.sales, 1, 'y'], ['荒利益高', (r) => +r.gross_profit, 1, 'y'], ['荒利率', (r) => r.gross_profit / r.sales, 1, 'p'],
+    ['ロス（値引＋廃棄）', (r) => +r.discount + +r.waste, -1, 'y'], ['値引高', (r) => +r.discount, -1, 'y'], ['廃棄高', (r) => +r.waste, -1, 'y'], ['廃棄率', (r) => r.waste / r.sales, -1, 'p']];
+  const fill = (table, a, b, la, lb) => {
+    const hr = document.createElement('tr');
+    ['', la, lb, '差'].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+    table.querySelector('thead').replaceChildren(hr);
+    table.querySelector('tbody').replaceChildren(...MET.map(([l, f, good, k]) => {
+      const tr = document.createElement('tr'); if (l === '荒利益高') tr.className = 'em';
+      const va = f(a), vb = f(b), d = vb - va, zero = k === 'p' ? isZeroPt(d) : Math.round(d) === 0;
+      tr.append(td(l), td(k === 'p' ? fRate(va) : fInt(va)), td(k === 'p' ? fRate(vb) : fInt(vb)),
+        td(k === 'p' ? (zero ? '' : d > 0 ? '▲' : '▼') + fPt(d) : sg(d), 'd ' + (zero ? '' : (d > 0) === (good > 0) ? 'ac-pos' : 'ac-neg')));
+      return tr;
+    }));
+  };
+  const wl = (r) => wkLabel(r.week_start, endOf.get(r.week_start));
+  el('sr-eyebrow').textContent = `店舗レポート　${state.store}（${fullName(state.store)}）　${wl(cur)}`;
+  if (!pre) {
+    el('sr-head').textContent = `${wl(cur)}の荒利益高は ${fInt(cur.gross_profit)}円／日です。`;
+    el('sr-sub').textContent = 'この週より前のデータがないため、先週との比較はありません。';
+    el('sr-week-card').hidden = true; el('sr-cat-card').hidden = true;
+  } else {
+    el('sr-week-card').hidden = false; el('sr-cat-card').hidden = false;
+    const d = cur.gross_profit - pre.gross_profit;
+    const b = document.createElement('b'); b.textContent = `${d >= 0 ? '▲' : '▼'}${fInt(Math.abs(d))}円／日`; b.className = d >= 0 ? 'ac-pos' : 'ac-neg';
+    el('sr-head').replaceChildren('先週から荒利益高は ', b, d >= 0 ? ' 上がりました。' : ' 下がりました。');
+    const r0 = pre.gross_profit / pre.sales, r1 = cur.gross_profit / cur.sales;
+    el('sr-sub').textContent = `荒利益高 ${fInt(pre.gross_profit)} → ${fInt(cur.gross_profit)}（6日間の合計では ${sg(d * 6)}円）。荒利率 ${fRate(r0)} → ${fRate(r1)}、廃棄率 ${fRate(pre.waste / pre.sales)} → ${fRate(cur.waste / cur.sales)}。`;
+    el('sr-week-title').textContent = `先週との比較：${wl(pre)} → ${wl(cur)}（1日あたり）`;
+    fill(el('sr-week'), pre, cur, `${wkShort(pre.week_start)}週`, `${wkShort(cur.week_start)}週`);
+    // カテゴリの上がった・下がった
+    const wc = ok('weekly_category') ? dash.data('weekly_category').data.filter((r) => r.store === state.store) : [];
+    const A = new Map(wc.filter((r) => r.week_start === pre.week_start).map((r) => [r.category, r])), B = new Map(wc.filter((r) => r.week_start === cur.week_start).map((r) => [r.category, r]));
+    const chg = [...B.keys()].filter((c) => A.has(c)).map((c) => ({ c, a: A.get(c), b: B.get(c), d: B.get(c).gross_profit - A.get(c).gross_profit })).sort((x, y) => y.d - x.d);
+    const li = (x) => { const n = document.createElement('li'); const g = document.createElement('b'); g.textContent = `${x.c}　${sg(x.d)}／日`; const w = document.createElement('span'); w.className = 'why'; w.textContent = `売上 ${sg(x.b.sales - x.a.sales)}・値引 ${sg(x.b.discount - x.a.discount)}・廃棄 ${sg(x.b.waste - x.a.waste)}`; n.append(g, w); return n; };
+    const ups = chg.filter((x) => x.d > 0).slice(0, 4), downs = chg.filter((x) => x.d < 0).reverse().slice(0, 4);
+    const none = () => { const n = document.createElement('li'); n.textContent = 'なし'; return n; };
+    el('sr-up').replaceChildren(...(ups.length ? ups.map(li) : [none()]));
+    el('sr-down').replaceChildren(...(downs.length ? downs.map(li) : [none()]));
+  }
+  // 当月の累計（直近2回分のレポート）
+  const mt = ok('mtd_total') ? dash.data('mtd_total').data.filter((r) => r.store === state.store).sort((a, b) => a.period_end.localeCompare(b.period_end)) : [];
+  const card = el('sr-mtd-card');
+  if (mt.length < 2) { card.hidden = true; return; }
+  card.hidden = false;
+  const [ma, mb] = mt.slice(-2), ml = (r) => `${+r.period_end.slice(5, 7)}/1〜${+r.period_end.slice(5, 7)}/${+r.period_end.slice(8)}`;
+  el('sr-mtd-title').textContent = `当月の累計：${ml(ma)} → ${ml(mb)}（1日あたり）`;
+  const add = mb.gross_profit * mb.days - ma.gross_profit * ma.days, n = mb.days - ma.days;
+  el('sr-mtd-note').textContent = `各週のレポートの「当月」欄です。この${n}日間に積み上がった荒利益は合計 ${fInt(Math.round(add))}円（1日 ${fInt(Math.round(add / n))}円）。`;
+  fill(el('sr-mtd'), ma, mb, `〜${+ma.period_end.slice(5, 7)}/${+ma.period_end.slice(8)}`, `〜${+mb.period_end.slice(5, 7)}/${+mb.period_end.slice(8)}`);
+}
+
 function drawStore() {
   if (!ok('weekly_total', 'store_week')) return;
   const wt = dash.data('weekly_total').data, order = storeOrder(wt);
@@ -974,6 +1067,7 @@ function drawStore() {
       { name: '荒利前年比', color: dash.colors[order.indexOf(state.store) % dash.colors.length], emph: true, values: new Map(mine.map((r) => [r.week_start, Number(r.gp_yoy)])) },
     ],
   });
+  drawStoreReport(mine, endOf);
   drawCategory(mine, endOf);
   drawHeat(mine, endOf);
 }
