@@ -263,6 +263,7 @@ body{padding:24px 16px 48px}
             <th data-field="discount">値引高</th>
             <th data-source="store_week" data-field="discount_rate">値引率</th>
             <th data-field="waste">廃棄高</th>
+            <th data-source="store_week" data-field="waste_rate">廃棄率</th>
             <th data-source="store_week" data-field="loss">ロス額<br>（値引＋廃棄）</th>
             <th data-source="store_week" data-field="loss_rate">ロス率<br>（÷販売高）</th>
             <th data-source="store_week" data-field="sell_rate">販売率</th>
@@ -441,6 +442,7 @@ body{padding:24px 16px 48px}
             <th data-field="discount">値引高</th>
             <th data-source="store_week" data-field="discount_rate">値引率</th>
             <th data-field="waste">廃棄高</th>
+            <th data-source="store_week" data-field="waste_rate">廃棄率</th>
             <th data-field="waste_yoy">廃棄前年比</th>
             <th data-source="store_week" data-field="loss">ロス額<br>（値引＋廃棄）</th>
             <th data-source="store_week" data-field="loss_rate">ロス率<br>（÷販売高）</th>
@@ -509,6 +511,7 @@ body{padding:24px 16px 48px}
             <th data-field="discount">値引高</th>
             <th data-source="month_rates" data-field="discount_rate">値引率</th>
             <th data-field="waste">廃棄高</th>
+            <th data-source="month_rates" data-field="waste_rate">廃棄率</th>
             <th data-source="month_rates" data-field="loss">ロス額<br>（値引＋廃棄）</th>
             <th data-source="month_rates" data-field="loss_rate">ロス率<br>（÷販売高）</th>
             <th data-source="month_rates" data-field="sell_rate">販売率</th>
@@ -540,6 +543,7 @@ body{padding:24px 16px 48px}
         <dt>ロス率</dt><dd>ロス額 ÷ 販売高。売上の大きさが違う店どうしで、ロス額を比べるための率です。</dd>
         <dt>販売率</dt><dd>販売高 ÷（販売高 ＋ 廃棄高 ＋ 値引高）。レポートの販売率と同じ式で、並べた量のうち売れた割合です。</dd>
         <dt>値引率</dt><dd>値引高 ÷ 販売高。</dd>
+        <dt>廃棄率</dt><dd>廃棄高 ÷ 販売高。低いほど、捨てずに売れています。</dd>
         <dt>前年比</dt><dd>レポートの値をそのまま載せています。100%未満は赤で表示します。廃棄前年比は少ないほど良い数字なので色を付けていません。</dd>
         <dt>採用SKU率</dt><dd>推奨SKU数に対して実際に並べたSKU数。品揃えを推奨どおりにしているかを示します。</dd>
         <dt>値引SKU一致</dt><dd>値引が推奨されたSKUのうち、実際に値引したSKUの割合（週次レポートの定義）。</dd>
@@ -616,7 +620,7 @@ dash.calc('month_rates', {
   description: 'ロス額（値引高＋廃棄高）、販売率（販売高÷（販売高＋廃棄高＋値引高）、レポートと同じ式）、値引率・ロス率・荒利率（販売高で割った値）。',
   fn: (monthly_total) => monthly_total.map((r) => {
     const s = Number(r.sales), d = Number(r.discount), w = Number(r.waste), g = Number(r.gross_profit);
-    return { key: r.key, store: r.store, month: r.month, loss: d + w, sell_rate: s / (s + d + w), discount_rate: d / s, loss_rate: (d + w) / s, gp_rate: g / s };
+    return { key: r.key, store: r.store, month: r.month, loss: d + w, sell_rate: s / (s + d + w), discount_rate: d / s, waste_rate: w / s, loss_rate: (d + w) / s, gp_rate: g / s };
   }),
 });
 
@@ -917,7 +921,7 @@ function drawOverview() {
     tb.replaceChildren(...rows.map((r, ri) => {
       const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
       const c0 = document.createElement('td'); const rk = document.createElement('span'); rk.className = 'ac-rank'; rk.textContent = String(ri + 1); rk.setAttribute('aria-label', `${ri + 1}位`); const dot = document.createElement('span'); dot.className = 'ac-dot'; dot.style.background = colors[order.indexOf(r.store) % colors.length]; c0.append(rk, dot, document.createTextNode(r.store)); c0.title = fullName(r.store);
-      tr.append(c0, td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
+      tr.append(c0, td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fRate(q.waste_rate)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
         td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), (() => { const c = td(fRate(q.gp_rate)); c.style.fontWeight = '600'; const bar = document.createElement('span'); bar.className = 'ac-inbar ac-hide-sm'; bar.style.width = `${Math.max(4, (q.gp_rate / gpMax) * 48)}px`; c.append(bar); return c; })(), td(fYoy(r.discount_sku_match), 'ac-hide-sm'));
       return tr;
     }));
@@ -958,7 +962,7 @@ function drawStore() {
     const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
     if (r.week_start === state.week) tr.style.fontWeight = '600';
     tr.append(td(wkLabel(r.week_start, r.week_end)), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fYoy(r.sales_wow)), td(fInt(r.discount)), td(fRate(q.discount_rate)),
-      td(fInt(r.waste)), td(fYoy(r.waste_yoy)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)), td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)));
+      td(fInt(r.waste)), td(fRate(q.waste_rate)), td(fYoy(r.waste_yoy)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)), td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), td(fRate(q.gp_rate)));
     return tr;
   }));
   // yoy chart
@@ -991,7 +995,7 @@ function drawCategory(mine, endOf) {
   table.dataset.source = src;
   const sellOk = dash.data('cat_rates').status === 'ok';
   const sell = new Map(sellOk ? dash.data('cat_rates').data.map((r) => [r.key, r.sell_rate]) : []);
-  const cols = [['category', 'カテゴリ', 's'], ['sales', '販売高', 'n'], ['sales_yoy', '販売前年比', 'y'], ['discount', '値引高', 'n'], ['waste', '廃棄高', 'n'], ['sell_rate', '販売率', 'r'], ['gross_profit', '荒利益高', 'n'], ['gp_yoy', '荒利前年比', 'y']];
+  const cols = [['category', 'カテゴリ', 's'], ['sales', '販売高', 'n'], ['sales_yoy', '販売前年比', 'y'], ['discount', '値引高', 'n'], ['waste', '廃棄高', 'n'], ['waste_rate', '廃棄率', 'w'], ['sell_rate', '販売率', 'r'], ['gross_profit', '荒利益高', 'n'], ['gp_yoy', '荒利前年比', 'y']];
   if (!isMonth) cols.push(['sku_rate', '採用SKU率', 'p'], ['discount_sku_match', '値引SKU一致', 'p']);
   const hr = table.querySelector('thead tr');
   hr.replaceChildren(...cols.map(([k, label]) => {
@@ -1004,7 +1008,7 @@ function drawCategory(mine, endOf) {
   if (!cols.some((c) => c[0] === state.catSort.k)) state.catSort = { k: 'sales', d: -1 };
   const rows = dash.data(src).data.filter((r) => r.store === state.store && (isMonth ? r.month === state.catPeriod.slice(1) : r.week_start === state.catPeriod));
   const k = state.catSort.k;
-  const valOf = (r, c) => (c === 'sell_rate' ? sell.get(r.key) : r[c]);
+  const valOf = (r, c) => (c === 'sell_rate' ? sell.get(r.key) : c === 'waste_rate' ? (+r.sales > 0 ? +r.waste / +r.sales : null) : r[c]);
   rows.sort((a, b) => (k === 'category' ? a.category.localeCompare(b.category, 'ja') : (Number(valOf(a, k) ?? -1e9) - Number(valOf(b, k) ?? -1e9))) * state.catSort.d);
   table.querySelector('tbody').replaceChildren(...rows.map((r) => {
     const tr = document.createElement('tr'); tr.dataset.key = r.key;
@@ -1012,6 +1016,7 @@ function drawCategory(mine, endOf) {
       const v = valOf(r, c);
       if (t === 's') tr.append(td(v));
       else if (t === 'r') tr.append(td(fSell(v)));
+      else if (t === 'w') tr.append(td(v == null ? '—' : fRate(v)));
       else if (t === 'n') tr.append(td(fInt(v), Number(v) < 0 ? 'ac-neg' : ''));
       else if (t === 'y') tr.append(td(fYoy(v), yoyCls(v)));
       else tr.append(td(fYoy(v), c === 'sku_rate' && v != null && (v >= 110 || v < 90) ? 'ac-neg' : ''));
@@ -1071,7 +1076,7 @@ function drawMtd() {
   const mult = (r) => (isTot ? r.days : 1);
   const val = (r, f) => (f === 'loss' ? (+r.discount + +r.waste) : +r[f]) * mult(r);
   // 大事な順：販売高 → 荒利益高 → 荒利率 → ロス（値引＋廃棄）→ 値引 → 廃棄
-  const M = [['sales', '販売高', 1], ['gross_profit', '荒利益高', 1], ['gp_rate', '荒利率', 1], ['loss', 'ロス額（値引＋廃棄）', -1], ['discount', '値引高', -1], ['waste', '廃棄高', -1]];
+  const M = [['sales', '販売高', 1], ['gross_profit', '荒利益高', 1], ['gp_rate', '荒利率', 1], ['loss', 'ロス額（値引＋廃棄）', -1], ['discount', '値引高', -1], ['waste', '廃棄高', -1], ['waste_rate', '廃棄率', -1]];
   const dcls = (v, good) => (Math.round(v) === 0 ? '' : (v > 0) === (good > 0) ? 'ac-pos' : 'ac-neg');
   const sg = (v) => (Math.round(v) > 0 ? '+' : Math.round(v) < 0 ? '−' : '±') + fInt(Math.abs(Math.round(v)));
   const head = (first) => {
@@ -1084,9 +1089,10 @@ function drawMtd() {
   const cells = (a, b) => {
     const out = [];
     M.forEach(([f, , good]) => {
-      if (f === 'gp_rate') {
-        const ra = a && +a.sales ? +a.gross_profit / +a.sales : null, rb = b && +b.sales ? +b.gross_profit / +b.sales : null;
-        out.push(td(ra == null ? '—' : fRate(ra), 'sep'), td(rb == null ? '—' : fRate(rb)), ra == null || rb == null ? td('—') : td(fPt(rb - ra), 'd ' + (isZeroPt(rb - ra) ? '' : rb > ra ? 'ac-pos' : 'ac-neg')));
+      if (f === 'gp_rate' || f === 'waste_rate') {
+        const num = f === 'gp_rate' ? 'gross_profit' : 'waste';
+        const ra = a && +a.sales ? +a[num] / +a.sales : null, rb = b && +b.sales ? +b[num] / +b.sales : null;
+        out.push(td(ra == null ? '—' : fRate(ra), 'sep'), td(rb == null ? '—' : fRate(rb)), ra == null || rb == null ? td('—') : td(fPt(rb - ra), 'd ' + (isZeroPt(rb - ra) ? '' : (rb > ra) === (good > 0) ? 'ac-pos' : 'ac-neg')));
         return;
       }
       const va = a ? val(a, f) : null, vb = b ? val(b, f) : null;
@@ -1148,7 +1154,7 @@ function drawMonth() {
     document.querySelector('#month-table tbody').replaceChildren(...rows.map((r) => {
       const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
       const c0 = td(r.store); c0.title = r.store_name || r.store;
-      tr.append(c0, td(monthLabel(r.month)), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
+      tr.append(c0, td(monthLabel(r.month)), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fRate(q.waste_rate)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
         td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), (() => { const c = td(fRate(q.gp_rate)); c.style.fontWeight = '600'; return c; })());
       if (prevM) { const pq = prevOf.get(r.store), dlt = pq ? q.gp_rate - pq.gp_rate : null; tr.append(td(dlt == null ? '—' : fPtX(dlt), dlt == null ? '' : dlt < 0 ? 'ac-neg' : 'ac-pos')); }
       return tr;
