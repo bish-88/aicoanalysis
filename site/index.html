@@ -593,11 +593,11 @@ body{padding:24px 16px 48px}
       <h2>判定のルール</h2>
       <dl class="ac-dl">
         <dt>販売率</dt><dd>販売高 ÷（販売高 ＋ 値引高 ＋ 廃棄高）。並べた量のうち売れた割合です。</dd>
-        <dt>廃棄比率</dt><dd>廃棄高 ÷（販売高 ＋ 廃棄高）。</dd>
-        <dt><span class="ac-drv up">▲ 上げるべき</span></dt><dd>販売率が90%より上で、廃棄比率が8%以下。売れ残りが少なく、もっと並べても売れる余地があります。</dd>
-        <dt><span class="ac-drv hold">→ 上げない</span></dt><dd>販売率は90%より上でも、廃棄比率が8%を超えている。上げると廃棄が増えるため、今のまま。</dd>
+        <dt>ロス率</dt><dd>（値引高 ＋ 廃棄高）÷ 販売高。</dd>
+        <dt><span class="ac-drv up">▲ 上げるべき</span></dt><dd>次の3つがそろったときだけ：販売率が90%より上、採用SKUが100%以下、ロス率（値引＋廃棄）が8%以下。売れ残りが少なく、もっと並べても売れる余地があります。</dd>
+        <dt><span class="ac-drv hold">→ 上げない</span></dt><dd>販売率は90%より上でも、ロス率（値引＋廃棄）が8%を超えている。上げるとロスが増えるため、今のまま。</dd>
         <dt><span class="ac-drv down">▼ 下げる検討</span></dt><dd>販売率が90%以下で、採用SKUが100%。品揃えは推奨どおりなのに売れ残っているので、ドライバを下げる候補です。</dd>
-        <dt><span class="ac-drv over">SKU多い</span></dt><dd>販売率が90%以下で、採用SKUが100%を超えている。まず推奨（100%）まで絞り、それでも売れ残るならドライバを下げます。</dd>
+        <dt><span class="ac-drv over">SKU多い</span></dt><dd>採用SKUが100%を超えている。推奨より多く並べているので、ドライバを上げる前（販売率90%超）でも下げる前（90%以下）でも、まず推奨（100%）にそろえます。</dd>
         <dt><span class="ac-drv sku">SKU不足</span></dt><dd>販売率が90%以下で、採用SKUが100%未満。ドライバを触る前に、まず採用SKUを100%にそろえて確認します。</dd>
       </dl>
     </div>
@@ -609,7 +609,7 @@ body{padding:24px 16px 48px}
     <div class="ac-card" id="drv-detail-card">
       <div class="ac-cmp-head"><h2 id="drv-detail-title">店舗の詳細</h2><div class="ac-chips" id="drv-stores" role="group" aria-label="店舗"></div></div>
       <p class="ac-note">「直近4週」は、選んだ週までの4週の判定です（左が古い週）。同じ判定が続くカテゴリほど、確実に手を打てます。</p>
-      <div class="ac-scroll"><table class="ac-table" id="drv-table"><thead><tr><th>カテゴリ</th><th>販売高</th><th>値引高</th><th>廃棄高</th><th>販売率</th><th>廃棄比率</th><th>採用SKU率</th><th>判定</th><th>直近4週</th></tr></thead><tbody></tbody></table></div>
+      <div class="ac-scroll"><table class="ac-table" id="drv-table"><thead><tr><th>カテゴリ</th><th>販売高</th><th>値引高</th><th>廃棄高</th><th>販売率</th><th>ロス率<br>（値引＋廃棄）÷販売高</th><th>採用SKU率</th><th>判定</th><th>直近4週</th></tr></thead><tbody></tbody></table></div>
     </div>
   </section>
 
@@ -1550,18 +1550,19 @@ function drawSupport() {
 }
 
 /* ---------- ドライバ検証 ---------- */
-const DRV = { sell: 0.90, waste: 0.08 };
+const DRV = { sell: 0.90, loss: 0.08 };
 const DRV_L = { up: ['▲ 上げるべき', '▲上げる', '▲'], hold: ['→ 上げない', '→上げない', '→'], down: ['▼ 下げる検討', '▼下げる', '▼'], over: ['SKU多い：まず絞る', 'SKU多い', 'S'], sku: ['SKU不足：まず100%に', 'SKU不足', 'S'] };
 const drvState = { store: null };
 function drvJudge(r) {
   const s = +r.sales, d = +r.discount, w = +r.waste;
   if (!(s > 0)) return null;
-  const sell = s / (s + d + w), wr = w / (s + w), sku = r.sku_rate == null ? null : +r.sku_rate;
+  const sell = s / (s + d + w), lr = (d + w) / s, sku = r.sku_rate == null ? null : +r.sku_rate;
   let k;
-  if (sell > DRV.sell) k = wr <= DRV.waste ? 'up' : 'hold';
+  // 上げるのは「販売率90%超・採用SKU100%以下・ロス率（値引＋廃棄）÷販売高 8%以下」がそろったときだけ
+  if (sell > DRV.sell) k = sku != null && sku > 100 ? 'over' : lr <= DRV.loss ? 'up' : 'hold';
   else if (sku == null) k = 'sku';
   else k = sku < 100 ? 'sku' : sku > 100 ? 'over' : 'down';
-  return { k, sell, wr, sku };
+  return { k, sell, lr, sku };
 }
 function drawDriver() {
   if (!ok('weekly_total', 'weekly_category')) return;
@@ -1590,7 +1591,7 @@ function drawDriver() {
       if (j) {
         const tag = document.createElement('span'); tag.className = 'ac-drv ' + j.k; tag.textContent = DRV_L[j.k][1];
         const rr = document.createElement('span'); rr.className = 'r'; rr.textContent = fRate(j.sell);
-        cell.append(tag, rr); cell.title = `${st} ${c}：販売率 ${fRate(j.sell)}・廃棄比率 ${fRate(j.wr)}・採用SKU ${j.sku == null ? '—' : j.sku + '%'}`;
+        cell.append(tag, rr); cell.title = `${st} ${c}：販売率 ${fRate(j.sell)}・ロス率 ${fRate(j.lr)}・採用SKU ${j.sku == null ? '—' : j.sku + '%'}`;
         cell.addEventListener('click', () => { drvState.store = st; draw(); el('drv-detail-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
       } else cell.textContent = '—';
       tr.append(cell);
@@ -1613,7 +1614,7 @@ function drawDriver() {
     const h = document.createElement('td'); h.className = 'ac-drv-hist';
     last4.forEach((w) => { const rw = idx.get(drvState.store + '|' + w + '|' + c), jw = rw && drvJudge(rw); const sp = document.createElement('span'); sp.className = jw ? jw.k : ''; sp.textContent = jw ? DRV_L[jw.k][2] : '・'; sp.title = `${wkLabel(w, endOf.get(w))}：${jw ? DRV_L[jw.k][0] + '（販売率 ' + fRate(jw.sell) + '）' : 'データなし'}`; h.append(sp); });
     tr.append(td(c), td(fInt(r.sales)), td(fInt(r.discount)), td(fInt(r.waste)),
-      td(fRate(j.sell), j.sell > DRV.sell ? 'ac-pos' : 'ac-neg'), td(fRate(j.wr), j.wr > DRV.waste ? 'ac-neg' : ''),
+      td(fRate(j.sell), j.sell > DRV.sell ? 'ac-pos' : 'ac-neg'), td(fRate(j.lr), j.lr > DRV.loss ? 'ac-neg' : 'ac-pos'),
       td(j.sku == null ? '—' : `${j.sku}%`, j.sku != null && j.sku !== 100 ? 'ac-neg' : ''), v, h);
     return tr;
   }));
