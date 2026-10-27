@@ -176,6 +176,17 @@ body{padding:24px 16px 48px}
 .ac-sr-col ol{margin:0;padding-left:1.2rem;display:flex;flex-direction:column;gap:var(--cds-gap-sm);font-size:var(--cds-font-size-body)}
 .ac-sr-col li .why{display:block;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
 .ac-sr-col li b{font-weight:600}
+.ac-drv{display:inline-block;padding:1px .5rem;border-radius:999px;font-size:var(--cds-font-size-caption);font-weight:600;white-space:nowrap}
+.ac-drv.up{background:var(--ac-good-bg);color:var(--color-ok)}
+.ac-drv.down{background:var(--ac-bad-bg);color:var(--color-bad)}
+.ac-drv.hold{background:var(--ac-tint);color:var(--color-fg-muted)}
+.ac-drv.sku,.ac-drv.over{background:color-mix(in srgb, #e67700 16%, transparent);color:color-mix(in srgb, #e67700 75%, var(--color-fg))}
+.ac-drv-mx td,.ac-drv-mx th{text-align:center}.ac-drv-mx td{cursor:pointer}.ac-drv-mx th:first-child{text-align:left}
+.ac-drv-mx td:first-child{text-align:left;cursor:default}
+.ac-drv-mx td .r{display:block;font-size:var(--cds-font-size-caption);color:var(--color-fg-muted)}
+.ac-drv-hist{letter-spacing:.15em;font-weight:600}
+.ac-drv-hist .up{color:var(--color-ok)}.ac-drv-hist .down{color:var(--color-bad)}.ac-drv-hist .sku,.ac-drv-hist .over{color:#e67700}.ac-drv-hist .hold{color:var(--color-fg-muted)}
+@media (min-width:641px) and (max-width:1000px){.ac-tabs{flex-wrap:wrap;overflow:visible}.ac-tab{flex:1 1 calc(25% - 4px)}}
 .ac-lock{max-width:22rem;margin:12vh auto 0;background:var(--color-panel);border:1px solid var(--color-border-line);border-radius:var(--cds-radius);padding:var(--cds-pad-xl);display:flex;flex-direction:column;gap:var(--cds-gap-md);font-family:var(--font-anthropic-sans);color:var(--color-fg)}
 .ac-lock h1{margin:0;font-family:var(--font-anthropic-serif);font-weight:400;font-size:var(--cds-font-size-title)}
 .ac-lock-row{display:flex;gap:var(--cds-gap-sm)}
@@ -250,6 +261,7 @@ body{padding:24px 16px 48px}
     <button type="button" class="ac-tab" role="tab" id="tab-support" data-page="support" aria-controls="support" aria-selected="false" tabindex="-1">本部支援</button>
     <button type="button" class="ac-tab" role="tab" id="tab-store" data-page="store" aria-controls="store" aria-selected="false" tabindex="-1">店舗別</button>
     <button type="button" class="ac-tab" role="tab" id="tab-month" data-page="month" aria-controls="month" aria-selected="false" tabindex="-1">月次</button>
+    <button type="button" class="ac-tab" role="tab" id="tab-driver" data-page="driver" aria-controls="driver" aria-selected="false" tabindex="-1">ドライバ検証</button>
     <button type="button" class="ac-tab" role="tab" id="tab-notes" data-page="notes" aria-controls="notes" aria-selected="false" tabindex="-1">見方と所見</button>
   </div>
 
@@ -570,6 +582,37 @@ body{padding:24px 16px 48px}
     </div>
   </section>
 
+  <!-- ドライバ検証 -->
+  <section class="ac-page" id="driver" role="tabpanel" aria-labelledby="tab-driver" hidden>
+    <div class="ac-card ac-hero">
+      <p class="ac-note" id="drv-eyebrow">ドライバ検証</p>
+      <p class="ac-big" id="drv-head"><span class="dash-skeleton">—</span></p>
+      <p class="ac-note">選んだ週の「前週」欄のカテゴリ別の数字で判定しています。上の「表示する週」で週を変えられます。</p>
+    </div>
+    <div class="ac-card" id="drv-rules">
+      <h2>判定のルール</h2>
+      <dl class="ac-dl">
+        <dt>販売率</dt><dd>販売高 ÷（販売高 ＋ 値引高 ＋ 廃棄高）。並べた量のうち売れた割合です。</dd>
+        <dt>廃棄比率</dt><dd>廃棄高 ÷（販売高 ＋ 廃棄高）。</dd>
+        <dt><span class="ac-drv up">▲ 上げるべき</span></dt><dd>販売率が90%より上で、廃棄比率が8%以下。売れ残りが少なく、もっと並べても売れる余地があります。</dd>
+        <dt><span class="ac-drv hold">→ 上げない</span></dt><dd>販売率は90%より上でも、廃棄比率が8%を超えている。上げると廃棄が増えるため、今のまま。</dd>
+        <dt><span class="ac-drv down">▼ 下げる検討</span></dt><dd>販売率が90%以下で、採用SKUが100%。品揃えは推奨どおりなのに売れ残っているので、ドライバを下げる候補です。</dd>
+        <dt><span class="ac-drv over">SKU多い</span></dt><dd>販売率が90%以下で、採用SKUが100%を超えている。まず推奨（100%）まで絞り、それでも売れ残るならドライバを下げます。</dd>
+        <dt><span class="ac-drv sku">SKU不足</span></dt><dd>販売率が90%以下で、採用SKUが100%未満。ドライバを触る前に、まず採用SKUを100%にそろえて確認します。</dd>
+      </dl>
+    </div>
+    <div class="ac-card" id="drv-matrix-card">
+      <h2 id="drv-matrix-title">カテゴリ × 店舗の判定</h2>
+      <p class="ac-note">数字は販売率。マスを押すと、その店の詳しい表に切り替わります。</p>
+      <div class="ac-scroll"><table class="ac-table ac-drv-mx" id="drv-matrix"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <div class="ac-card" id="drv-detail-card">
+      <div class="ac-cmp-head"><h2 id="drv-detail-title">店舗の詳細</h2><div class="ac-chips" id="drv-stores" role="group" aria-label="店舗"></div></div>
+      <p class="ac-note">「直近4週」は、選んだ週までの4週の判定です（左が古い週）。同じ判定が続くカテゴリほど、確実に手を打てます。</p>
+      <div class="ac-scroll"><table class="ac-table" id="drv-table"><thead><tr><th>カテゴリ</th><th>販売高</th><th>値引高</th><th>廃棄高</th><th>販売率</th><th>廃棄比率</th><th>採用SKU率</th><th>判定</th><th>直近4週</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
   <!-- 見方と所見 -->
   <section class="ac-page" id="notes" role="tabpanel" aria-labelledby="tab-notes" hidden>
     <div class="ac-card" id="defs">
@@ -880,7 +923,7 @@ function scatter(box, pts) {
 
 /* ---------- pages ---------- */
 // 「表示する週」と「この週のポイント」が効くタブ。ほかのタブでは隠して、選んでも変わらないものを見せない。
-const WEEK_PAGES = ['overview', 'store'];
+const WEEK_PAGES = ['overview', 'store', 'driver'];
 function setPage(p) {
   state.page = p;
   document.querySelectorAll('.ac-tab').forEach((b) => { const on = b.dataset.page === p; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
@@ -1506,6 +1549,76 @@ function drawSupport() {
   }));
 }
 
+/* ---------- ドライバ検証 ---------- */
+const DRV = { sell: 0.90, waste: 0.08 };
+const DRV_L = { up: ['▲ 上げるべき', '▲上げる', '▲'], hold: ['→ 上げない', '→上げない', '→'], down: ['▼ 下げる検討', '▼下げる', '▼'], over: ['SKU多い：まず絞る', 'SKU多い', 'S'], sku: ['SKU不足：まず100%に', 'SKU不足', 'S'] };
+const drvState = { store: null };
+function drvJudge(r) {
+  const s = +r.sales, d = +r.discount, w = +r.waste;
+  if (!(s > 0)) return null;
+  const sell = s / (s + d + w), wr = w / (s + w), sku = r.sku_rate == null ? null : +r.sku_rate;
+  let k;
+  if (sell > DRV.sell) k = wr <= DRV.waste ? 'up' : 'hold';
+  else if (sku == null) k = 'sku';
+  else k = sku < 100 ? 'sku' : sku > 100 ? 'over' : 'down';
+  return { k, sell, wr, sku };
+}
+function drawDriver() {
+  if (!ok('weekly_total', 'weekly_category')) return;
+  const wt = dash.data('weekly_total').data, wc = dash.data('weekly_category').data, order = storeOrder(wt);
+  const weeks = [...new Set(wt.map((r) => r.week_start))].sort();
+  const W = weeks.includes(state.week) ? state.week : weeks[weeks.length - 1];
+  const endOf = new Map(wt.map((r) => [r.week_start, r.week_end]));
+  const idx = new Map(wc.map((r) => [r.store + '|' + r.week_start + '|' + r.category, r]));
+  const cats = [...new Set(wc.map((r) => r.category))];
+  const cur = wc.filter((r) => r.week_start === W);
+  const cnt = { up: 0, down: 0, over: 0, sku: 0, hold: 0 };
+  cur.forEach((r) => { const j = drvJudge(r); if (j) cnt[j.k] += 1; });
+  el('drv-eyebrow').textContent = `ドライバ検証　${wkLabel(W, endOf.get(W))}　5店×カテゴリ`;
+  const b = (t, c) => { const x = document.createElement('b'); x.textContent = t; x.className = c; return x; };
+  el('drv-head').replaceChildren('上げるべき ', b(`${cnt.up}件`, 'ac-pos'), '・下げる検討 ', b(`${cnt.down}件`, 'ac-neg'), '・SKUの確認 ', b(`${cnt.sku + cnt.over}件`, ''), '。');
+  if (!drvState.store || !order.includes(drvState.store)) drvState.store = order[0];
+  // マトリクス
+  const t = el('drv-matrix');
+  const hr = document.createElement('tr'); ['カテゴリ', ...order].forEach((h) => { const th = document.createElement('th'); th.textContent = h; hr.append(th); });
+  t.querySelector('thead').replaceChildren(hr);
+  el('drv-matrix-title').textContent = `カテゴリ × 店舗の判定（${wkLabel(W, endOf.get(W))}）`;
+  t.querySelector('tbody').replaceChildren(...cats.map((c) => {
+    const tr = document.createElement('tr'); tr.append(td(c));
+    order.forEach((st) => {
+      const r = idx.get(st + '|' + W + '|' + c), j = r && drvJudge(r), cell = document.createElement('td');
+      if (j) {
+        const tag = document.createElement('span'); tag.className = 'ac-drv ' + j.k; tag.textContent = DRV_L[j.k][1];
+        const rr = document.createElement('span'); rr.className = 'r'; rr.textContent = fRate(j.sell);
+        cell.append(tag, rr); cell.title = `${st} ${c}：販売率 ${fRate(j.sell)}・廃棄比率 ${fRate(j.wr)}・採用SKU ${j.sku == null ? '—' : j.sku + '%'}`;
+        cell.addEventListener('click', () => { drvState.store = st; draw(); el('drv-detail-card').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+      } else cell.textContent = '—';
+      tr.append(cell);
+    });
+    return tr;
+  }));
+  // 店舗の詳細
+  el('drv-stores').replaceChildren(...order.map((st) => {
+    const x = document.createElement('button'); x.className = 'ac-chip'; x.type = 'button'; x.textContent = st; x.title = fullName(st); x.setAttribute('aria-pressed', String(st === drvState.store));
+    x.addEventListener('click', () => { drvState.store = st; draw(); }); return x;
+  }));
+  el('drv-detail-title').textContent = `${drvState.store}　カテゴリ別の判定`;
+  const last4 = weeks.filter((w) => w <= W).slice(-4);
+  const rank = { up: 0, down: 1, over: 2, sku: 3, hold: 4 };
+  const rows = cats.map((c) => ({ c, r: idx.get(drvState.store + '|' + W + '|' + c) })).filter((x) => x.r).map((x) => ({ ...x, j: drvJudge(x.r) })).filter((x) => x.j)
+    .sort((a, z) => rank[a.j.k] - rank[z.j.k] || z.r.sales - a.r.sales);
+  el('drv-table').querySelector('tbody').replaceChildren(...rows.map(({ c, r, j }) => {
+    const tr = document.createElement('tr'); tr.dataset.key = r.key;
+    const v = document.createElement('td'); const tag = document.createElement('span'); tag.className = 'ac-drv ' + j.k; tag.textContent = DRV_L[j.k][0]; v.append(tag);
+    const h = document.createElement('td'); h.className = 'ac-drv-hist';
+    last4.forEach((w) => { const rw = idx.get(drvState.store + '|' + w + '|' + c), jw = rw && drvJudge(rw); const sp = document.createElement('span'); sp.className = jw ? jw.k : ''; sp.textContent = jw ? DRV_L[jw.k][2] : '・'; sp.title = `${wkLabel(w, endOf.get(w))}：${jw ? DRV_L[jw.k][0] + '（販売率 ' + fRate(jw.sell) + '）' : 'データなし'}`; h.append(sp); });
+    tr.append(td(c), td(fInt(r.sales)), td(fInt(r.discount)), td(fInt(r.waste)),
+      td(fRate(j.sell), j.sell > DRV.sell ? 'ac-pos' : 'ac-neg'), td(fRate(j.wr), j.wr > DRV.waste ? 'ac-neg' : ''),
+      td(j.sku == null ? '—' : `${j.sku}%`, j.sku != null && j.sku !== 100 ? 'ac-neg' : ''), v, h);
+    return tr;
+  }));
+}
+
 function draw() {
   drawHeader();
   if (state.page === 'overview') drawOverview();
@@ -1514,6 +1627,7 @@ function draw() {
   if (state.page === 'support') drawSupport();
   if (state.page === 'store') drawStore();
   if (state.page === 'month') drawMonth();
+  if (state.page === 'driver') drawDriver();
   // グラフ（svg role=img）に、カードの見出しを読み上げ用の名前として付ける
   document.querySelectorAll('.ac-page:not([hidden]) svg[role="img"]').forEach((svg) => {
     const h = svg.closest('.ac-card')?.querySelector('h2');
