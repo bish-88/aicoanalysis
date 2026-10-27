@@ -859,13 +859,23 @@ function scatter(box, pts) {
   svg.selectAll('text.tx').data(x.ticks(5)).join('text').attr('x', x).attr('y', H - m.b + 20).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text(d3.format('.0%'));
   svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('ロス率（値引＋廃棄）÷販売高');
   svg.append('text').attr('transform', `translate(12,${(m.t + H - m.b) / 2}) rotate(-90)`).attr('text-anchor', 'middle').attr('font-size', 12).style('fill', 'var(--color-fg-muted)').text('荒利率');
-  const tip = makeTip(box);
+  const tip = makeTip(box), labels = [];
   pts.forEach((p) => {
     svg.append('circle').attr('cx', x(p.x)).attr('cy', y(p.y)).attr('r', 7).style('fill', p.color)
       .call(hoverOn, () => { const s = box.clientWidth / W; tip.show(x(p.x) * s, y(p.y) * s, p.name, [[null, 'ロス率', fRate(p.x)], [null, '荒利率', fRate(p.y)]]); }, () => tip.hide());
     const right = x(p.x) < W - m.r - 70;
-    svg.append('text').attr('x', x(p.x) + (right ? 11 : -11)).attr('y', y(p.y) + 4).attr('text-anchor', right ? 'start' : 'end').attr('font-size', 12).style('fill', 'var(--color-fg)').text(p.name);
+    labels.push(svg.append('text').attr('x', x(p.x) + (right ? 11 : -11)).attr('y', y(p.y) + 4).attr('text-anchor', right ? 'start' : 'end').attr('font-size', 12).style('fill', 'var(--color-fg)').text(p.name));
   });
+  // 名前が重なったら、上下にずらす
+  for (let pass = 0; pass < 4; pass++) {
+    labels.forEach((a, i) => labels.slice(i + 1).forEach((c) => {
+      const ra = a.node().getBBox(), rc = c.node().getBBox();
+      if (ra.x < rc.x + rc.width && rc.x < ra.x + ra.width && ra.y < rc.y + rc.height && rc.y < ra.y + ra.height) {
+        const up = ra.y <= rc.y ? a : c, dn = up === a ? c : a;
+        up.attr('y', +up.attr('y') - 7); dn.attr('y', +dn.attr('y') + 7);
+      }
+    }));
+  }
 }
 
 /* ---------- pages ---------- */
