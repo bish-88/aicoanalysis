@@ -772,8 +772,13 @@ const wkShort = (s) => { const a = s.split('-'); return `${+a[1]}/${+a[2]}`; };
 const wkLabel = (s, e) => { const a = s.split('-'), b = (e || '').split('-'); return `${+a[1]}/${+a[2]}〜${b.length > 2 ? `${+b[1]}/${+b[2]}` : ''}`; };
 // 月のラベル。月の途中の値（period_end あり）は「10月（1〜18日）」のように途中までと分かるようにする
 const monthLabel = (m) => {
-  const d = dash.data('monthly_total'), r = d.status === 'ok' ? d.data.find((x) => x.month === m && x.period_end) : null;
+  // 店が全部「月の途中」のときだけ途中と表示。店ごとの表は rowMonthLabel を使う
+  const d = dash.data('monthly_total'), rs = d.status === 'ok' ? d.data.filter((x) => x.month === m) : [];
+  const r = rs.length && rs.every((x) => x.period_end) ? rs[0] : null;
   return r ? `${+m.split('-')[1]}月（1〜${+r.period_end.slice(8)}日）` : `${+m.split('-')[1]}月`;
+};
+const rowMonthLabel = (r) => (r.period_end ? `${+r.month.split('-')[1]}月（1〜${+r.period_end.slice(8)}日）` : `${+r.month.split('-')[1]}月`);
+const _unused = () => {
 };
 const fullName = (s) => { const d = dash.data('weekly_total'); const r = d.status === 'ok' ? d.data.find((x) => x.store === s) : null; return (r && r.store_name) || s; };
 const state = { page: 'overview', week: null, store: null, catPeriod: null, catSort: { k: 'sales', d: -1 }, metric: 'gp_yoy', month: null };
@@ -871,7 +876,7 @@ function lineChart(box, cfg) {
     g.selectAll(null).data(pts.filter((p) => p[1] != null)).join('circle').attr('cx', (d) => x(d[0])).attr('cy', (d) => y(d[1])).attr('r', 3).style('fill', s.color);
   });
   // end labels, nudged apart
-  const ends = cfg.series.map((s) => ({ s, y: y(s.values.get(cfg.xs[cfg.xs.length - 1]) ?? lo) })).sort((a, b) => a.y - b.y);
+  const ends = cfg.series.filter((s) => s.values.get(cfg.xs[cfg.xs.length - 1]) != null).map((s) => ({ s, y: y(s.values.get(cfg.xs[cfg.xs.length - 1])) })).sort((a, b) => a.y - b.y);
   for (let i = 1; i < ends.length; i++) if (ends[i].y - ends[i - 1].y < 14) ends[i].y = ends[i - 1].y + 14;
   const over = ends.length ? ends[ends.length - 1].y - (H - m.b) : 0;
   if (over > 0) ends.forEach((e) => { e.y -= over; });
@@ -1301,7 +1306,7 @@ function drawMonth() {
     document.querySelector('#month-table tbody').replaceChildren(...rows.map((r) => {
       const q = rates.get(r.key), tr = document.createElement('tr'); tr.dataset.key = r.key;
       const c0 = td(r.store); c0.title = r.store_name || r.store;
-      tr.append(c0, td(monthLabel(r.month)), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fRate(q.waste_rate)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
+      tr.append(c0, td(rowMonthLabel(r)), td(fInt(r.sales)), td(fYoy(r.sales_yoy), yoyCls(r.sales_yoy)), td(fInt(r.discount)), td(fRate(q.discount_rate)), td(fInt(r.waste)), td(fRate(q.waste_rate)), td(fInt(q.loss)), td(fRate(q.loss_rate)), td(fSell(q.sell_rate)),
         td(fInt(r.gross_profit)), td(fYoy(r.gp_yoy), yoyCls(r.gp_yoy)), (() => { const c = td(fRate(q.gp_rate)); c.style.fontWeight = '600'; return c; })());
       if (prevM) { const pq = prevOf.get(r.store), dlt = pq ? q.gp_rate - pq.gp_rate : null; tr.append(td(dlt == null ? '—' : fPtX(dlt), dlt == null ? '' : dlt < 0 ? 'ac-neg' : 'ac-pos')); }
       return tr;
