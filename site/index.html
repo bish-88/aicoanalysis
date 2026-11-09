@@ -1091,6 +1091,12 @@ function drawStoreReport(mine, endOf) {
   if (mt.length < 2) { card.hidden = true; return; }
   card.hidden = false;
   const [ma, mb] = mt.slice(-2), ml = (r) => `${+r.period_end.slice(5, 7)}/1〜${+r.period_end.slice(5, 7)}/${+r.period_end.slice(8)}`;
+  if (ma.month !== mb.month) {
+    el('sr-mtd-title').textContent = `前月と今月の途中：${+ma.month.slice(5)}月 → ${ml(mb)}（1日あたり）`;
+    el('sr-mtd-note').textContent = `各週のレポートの「当月」欄です。今月はまだ${mb.days}日分なので、1日あたりで前月と比べています。`;
+    fill(el('sr-mtd'), ma, mb, `${+ma.month.slice(5)}月`, `〜${+mb.period_end.slice(5, 7)}/${+mb.period_end.slice(8)}`);
+    return;
+  }
   el('sr-mtd-title').textContent = `当月の累計：${ml(ma)} → ${ml(mb)}（1日あたり）`;
   const add = mb.gross_profit * mb.days - ma.gross_profit * ma.days, n = mb.days - ma.days;
   el('sr-mtd-note').textContent = `各週のレポートの「当月」欄です。この${n}日間に積み上がった荒利益は合計 ${fInt(Math.round(add))}円（1日 ${fInt(Math.round(add / n))}円）。`;
@@ -1212,14 +1218,18 @@ function drawMtd() {
   if (ends.length < 2) { card.hidden = true; return; }
   card.hidden = false;
   const [e0, e1] = ends.slice(-2);
+  const crossMonth = e0.slice(0, 7) !== e1.slice(0, 7);
+  if (crossMonth) mtdState.mode = 'day';
   const lab = (e) => `${+e.slice(5, 7)}/1〜${+e.slice(5, 7)}/${+e.slice(8)}`;
   const d0 = all.find((r) => r.period_end === e0).days, d1 = all.find((r) => r.period_end === e1).days;
   const addFrom = addDays(e0, 1);
   const isTot = mtdState.mode === 'total';
-  el('mtd-title').textContent = `月の途中経過：${lab(e0)} と ${lab(e1)} の違い`;
+  el('mtd-title').textContent = crossMonth ? `前月と今月の途中：${+e0.slice(5, 7)}月 と ${lab(e1)} の違い` : `月の途中経過：${lab(e0)} と ${lab(e1)} の違い`;
   el('mtd-note').textContent = isTot
     ? `期間合計＝1日あたり×日数（${d0}日・${d1}日）。差は ${+addFrom.slice(5, 7)}/${+addFrom.slice(8)}〜${+e1.slice(5, 7)}/${+e1.slice(8)}（${d1 - d0}日）に増えた金額です。`
     : `レポートの当月欄は1日あたりの値です。差は1日あたりの平均がどれだけ動いたかです。荒利率は荒利益高÷販売高。`;
+  if (crossMonth) el('mtd-note').textContent = `今月はまだ${d1}日分なので、前月（${d0}日）と1日あたりで比べています。荒利率は荒利益高÷販売高。`;
+  el('mtd-mode').hidden = crossMonth;
   el('mtd-mode').replaceChildren(...[['day', '1日あたり'], ['total', '期間合計']].map(([k, l]) => {
     const b = document.createElement('button'); b.className = 'ac-chip'; b.type = 'button'; b.textContent = l; b.setAttribute('aria-pressed', String(k === mtdState.mode));
     b.addEventListener('click', () => { mtdState.mode = k; draw(); }); return b;
